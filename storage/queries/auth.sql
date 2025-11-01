@@ -1,5 +1,10 @@
 -- Users
 
+-- name: AuthSelectUserByID :one
+select id, username, password, is_blocked, is_checked, blocked_at, checked_at, visited_at, created_at, updated_at
+from users
+where id = @id;
+
 -- name: AuthSelectUserCredentials :one
 select id, username, password, is_blocked, is_checked, blocked_at, checked_at
 from users

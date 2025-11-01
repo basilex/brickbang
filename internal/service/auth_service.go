@@ -2,33 +2,37 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"database/sql"
+	"encoding/base64"
+	"log"
+	"strings"
 	"time"
 
+	"brickbang/internal/exception"
 	"brickbang/internal/repository"
 	"brickbang/storage/dbs"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
-// IAuthService defines methods for authentication and API key management
 type IAuthService interface {
-	Login(ctx *fiber.Ctx) (map[string]interface{}, error)
-	Refresh(ctx *fiber.Ctx) (map[string]interface{}, error)
-	Me(ctx *fiber.Ctx) (map[string]interface{}, error)
-	CreateAPIKey(ctx *fiber.Ctx) (map[string]interface{}, error)
-	DeleteAPIKey(ctx *fiber.Ctx) (map[string]interface{}, error)
+	Login(ctx *fiber.Ctx) (map[string]any, error)
+	Refresh(ctx *fiber.Ctx) (map[string]any, error)
+	Me(ctx *fiber.Ctx) (map[string]any, error)
+	CreateAPIKey(ctx *fiber.Ctx) (map[string]any, error)
+	DeleteAPIKey(ctx *fiber.Ctx) (map[string]any, error)
 	ListAPIKeys(ctx *fiber.Ctx) ([]*dbs.Apikey, error)
 }
 
-// ===== Implementation ======
 type AuthService struct {
 	repo      repository.IAuthRepository
 	jwtSecret string
 	jwtTTL    time.Duration
 }
 
-// NewAuthService constructor
 func NewAuthService(repo repository.IAuthRepository, jwtSecret string, jwtTTL time.Duration) IAuthService {
 	return &AuthService{
 		repo:      repo,
@@ -37,35 +41,35 @@ func NewAuthService(repo repository.IAuthRepository, jwtSecret string, jwtTTL ti
 	}
 }
 
-// ===== JWT login ======
-func (s *AuthService) Login(ctx *fiber.Ctx) (map[string]interface{}, error) {
-	type loginBody struct {
+// ================= JWT login =================
+func (s *AuthService) Login(ctx *fiber.Ctx) (map[string]any, error) {
+	var body struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
-
-	var body loginBody
 	if err := ctx.BodyParser(&body); err != nil {
-		return nil, fiber.ErrBadRequest
+		return nil, exception.ErrBadRequest("invalid JSON body")
 	}
 
 	user, err := s.repo.FindByUsername(context.Background(), body.Username)
 	if err != nil {
-		return nil, fiber.ErrUnauthorized
+		if err == sql.ErrNoRows {
+			return nil, exception.ErrUnauthorized("invalid username or password")
+		}
+		return nil, exception.ErrInternal("failed to fetch user")
+	}
+	if user == nil || !CheckPasswordHash(body.Password, user.Password) {
+		return nil, exception.ErrUnauthorized("invalid username or password")
+	}
+	if user.IsBlocked {
+		return nil, exception.ErrForbidden("user is blocked")
 	}
 
-	// Проверка пароля (bcrypt)
-	if !CheckPasswordHash(body.Password, user.Password) {
-		return nil, fiber.ErrUnauthorized
-	}
-
-	// Обновляем visited_at
 	_, _ = s.repo.UpdateVisitedAt(context.Background(), user.ID)
 
-	// Генерируем JWT
-	tokenString, err := s.generateJWT(user.ID)
+	token, err := s.generateJWT(user.ID)
 	if err != nil {
-		return nil, fiber.ErrInternalServerError
+		return nil, exception.ErrInternal("failed to generate token")
 	}
 
 	return map[string]any{
@@ -73,39 +77,65 @@ func (s *AuthService) Login(ctx *fiber.Ctx) (map[string]interface{}, error) {
 			"id":       user.ID,
 			"username": user.Username,
 		},
-		"token": tokenString,
+		"token": token,
 	}, nil
 }
 
-// ===== JWT refresh ======
-func (s *AuthService) Refresh(ctx *fiber.Ctx) (map[string]interface{}, error) {
-	// TBD: парсим Bearer, проверяем валидность и выдаем новый токен
-	return map[string]interface{}{
-		"message": "refresh not implemented yet",
+// ================= JWT refresh =================
+func (s *AuthService) Refresh(ctx *fiber.Ctx) (map[string]any, error) {
+	userID, err := s.extractUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	newToken, err := s.generateJWT(userID)
+	if err != nil {
+		return nil, exception.ErrInternal("failed to generate new token")
+	}
+	return map[string]any{"token": newToken}, nil
+}
+
+// ================= Current user =================
+func (s *AuthService) Me(ctx *fiber.Ctx) (map[string]any, error) {
+	userID, err := s.extractUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := s.repo.FindByID(context.Background(), userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, exception.ErrNotFound("user not found")
+		}
+		return nil, exception.ErrInternal("failed to fetch user")
+	}
+
+	return map[string]any{
+		"id":         user.ID,
+		"username":   user.Username,
+		"is_checked": user.IsChecked,
+		"is_blocked": user.IsBlocked,
+		"visited_at": user.VisitedAt,
+		"created_at": user.CreatedAt,
+		"updated_at": user.UpdatedAt,
 	}, nil
 }
 
-// ===== Current user ======
-func (s *AuthService) Me(ctx *fiber.Ctx) (map[string]interface{}, error) {
-	// TBD: берем userID из JWT
-	return map[string]interface{}{
-		"message": "me not implemented yet",
-	}, nil
-}
-
-// ===== API Key management ======
-func (s *AuthService) CreateAPIKey(ctx *fiber.Ctx) (map[string]interface{}, error) {
-	type req struct {
+// ================= API Key management =================
+func (s *AuthService) CreateAPIKey(ctx *fiber.Ctx) (map[string]any, error) {
+	var body struct {
 		UserID string `json:"user_id"`
 		Name   string `json:"name"`
 	}
-
-	var body req
 	if err := ctx.BodyParser(&body); err != nil {
-		return nil, fiber.ErrBadRequest
+		return nil, exception.ErrBadRequest("invalid JSON body")
+	}
+	if body.UserID == "" || body.Name == "" {
+		return nil, exception.ErrUnprocessable("missing required fields: user_id, name")
 	}
 
-	keyHash := GenerateAPIKeyHash() // TODO: генерация случайного API key
+	rawKey := GenerateAPIKey(32)
+	keyHash := HashAPIKey(rawKey)
 
 	apikey, err := s.repo.CreateAPIKey(context.Background(), &dbs.AuthCreateAPIKeyParams{
 		UserID:  body.UserID,
@@ -113,58 +143,111 @@ func (s *AuthService) CreateAPIKey(ctx *fiber.Ctx) (map[string]interface{}, erro
 		Name:    body.Name,
 	})
 	if err != nil {
-		return nil, err
+		return nil, exception.ErrInternal("failed to create API key")
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"apikey": apikey,
-		"key":    keyHash, // показываем пользователю только один раз
+		"key":    rawKey,
 	}, nil
 }
 
-func (s *AuthService) DeleteAPIKey(ctx *fiber.Ctx) (map[string]interface{}, error) {
+func (s *AuthService) DeleteAPIKey(ctx *fiber.Ctx) (map[string]any, error) {
 	keyID := ctx.Params("id")
 	if keyID == "" {
-		return nil, fiber.ErrBadRequest
+		return nil, exception.ErrBadRequest("missing key id")
 	}
 
-	if err := s.repo.DeleteAPIKey(context.Background(), keyID); err != nil {
-		return nil, err
+	err := s.repo.DeleteAPIKey(context.Background(), keyID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, exception.ErrNotFound("api key not found")
+		}
+		return nil, exception.ErrInternal("failed to delete api key")
 	}
-
-	return map[string]interface{}{
-		"deleted": keyID,
-	}, nil
+	return map[string]any{"deleted": keyID}, nil
 }
 
 func (s *AuthService) ListAPIKeys(ctx *fiber.Ctx) ([]*dbs.Apikey, error) {
 	userID := ctx.Params("user_id")
 	if userID == "" {
-		return nil, fiber.ErrBadRequest
+		return nil, exception.ErrBadRequest("missing user id")
 	}
 
-	return s.repo.GetAPIKeysByUser(context.Background(), userID)
+	keys, err := s.repo.GetAPIKeysByUser(context.Background(), userID)
+	if err != nil {
+		return nil, exception.ErrInternal("failed to fetch API keys")
+	}
+	return keys, nil
 }
 
-// ===== JWT helper ======
+// ================= JWT helper =================
 func (s *AuthService) generateJWT(userID string) (string, error) {
 	claims := jwt.MapClaims{
 		"sub": userID,
 		"exp": time.Now().Add(s.jwtTTL).Unix(),
 	}
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(s.jwtSecret))
 }
 
-// ===== Password helper ======
-func CheckPasswordHash(password, hash string) bool {
-	// TODO: использовать bcrypt.CompareHashAndPassword
-	return password == hash
+// ================= extract user helper =================
+func (s *AuthService) extractUserID(ctx *fiber.Ctx) (string, error) {
+	authHeader := ctx.Get("Authorization")
+	if authHeader == "" {
+		return "", exception.ErrUnauthorized("missing Authorization header")
+	}
+
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return "", exception.ErrUnauthorized("invalid Authorization format")
+	}
+
+	tokenStr := parts[1]
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(s.jwtSecret), nil
+	})
+	if err != nil || !token.Valid {
+		return "", exception.ErrUnauthorized("invalid or expired token")
+	}
+
+	userID, ok := claims["sub"].(string)
+	if !ok || userID == "" {
+		return "", exception.ErrUnauthorized("invalid token claims")
+	}
+
+	return userID, nil
 }
 
-// ===== API Key helper ======
-func GenerateAPIKeyHash() string {
-	// TODO: сгенерировать безопасный случайный ключ, вернуть как строку
-	return "TODO-API-KEY"
+// ================= Password helpers =================
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
+
+func HashPassword(password string) string {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatalf("Failed to hash password: %v", err)
+	}
+	return string(hash)
+}
+
+// ================= API Key helpers =================
+func GenerateAPIKey(length int) string {
+	b := make([]byte, length)
+	_, err := rand.Read(b)
+	if err != nil {
+		log.Fatalf("Failed to generate API key: %v", err)
+	}
+	return base64.URLEncoding.EncodeToString(b)
+}
+
+func HashAPIKey(key string) string {
+	hash, err := bcrypt.GenerateFromPassword([]byte(key), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatalf("Failed to hash API key: %v", err)
+	}
+	return string(hash)
 }

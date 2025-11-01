@@ -145,8 +145,50 @@ func (q *Queries) AuthSelectAPIKeysByUser(ctx context.Context, userID string) ([
 	return items, nil
 }
 
-const authSelectUserCredentials = `-- name: AuthSelectUserCredentials :one
+const authSelectUserByID = `-- name: AuthSelectUserByID :one
 
+select id, username, password, is_blocked, is_checked, blocked_at, checked_at, visited_at, created_at, updated_at
+from users
+where id = $1
+`
+
+type AuthSelectUserByIDRow struct {
+	ID        string           `json:"id"`
+	Username  string           `json:"username"`
+	Password  string           `json:"password"`
+	IsBlocked bool             `json:"is_blocked"`
+	IsChecked bool             `json:"is_checked"`
+	BlockedAt pgtype.Timestamp `json:"blocked_at"`
+	CheckedAt pgtype.Timestamp `json:"checked_at"`
+	VisitedAt pgtype.Timestamp `json:"visited_at"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
+// Users
+//
+//	select id, username, password, is_blocked, is_checked, blocked_at, checked_at, visited_at, created_at, updated_at
+//	from users
+//	where id = $1
+func (q *Queries) AuthSelectUserByID(ctx context.Context, id string) (*AuthSelectUserByIDRow, error) {
+	row := q.db.QueryRow(ctx, authSelectUserByID, id)
+	var i AuthSelectUserByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Password,
+		&i.IsBlocked,
+		&i.IsChecked,
+		&i.BlockedAt,
+		&i.CheckedAt,
+		&i.VisitedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const authSelectUserCredentials = `-- name: AuthSelectUserCredentials :one
 select id, username, password, is_blocked, is_checked, blocked_at, checked_at
 from users
 where username = $1
@@ -162,7 +204,7 @@ type AuthSelectUserCredentialsRow struct {
 	CheckedAt pgtype.Timestamp `json:"checked_at"`
 }
 
-// Users
+// AuthSelectUserCredentials
 //
 //	select id, username, password, is_blocked, is_checked, blocked_at, checked_at
 //	from users

@@ -14,6 +14,7 @@ import (
 
 	"brickbang/internal"
 	"brickbang/internal/config"
+	"brickbang/internal/middleware"
 )
 
 var (
@@ -56,6 +57,7 @@ func Run() {
 		ReadTimeout:           cfg.ServerReadTimeout,
 		WriteTimeout:          cfg.ServerWriteTimeout,
 		BodyLimit:             cfg.ServerMaxHeaderBytes,
+		ErrorHandler:          middleware.ErrorHandler,
 	})
 
 	// ===== CORS middleware =====

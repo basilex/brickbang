@@ -9,6 +9,7 @@ import (
 type IAuthRepository interface {
 	// Users
 	FindByUsername(ctx context.Context, username string) (*dbs.AuthSelectUserCredentialsRow, error)
+	FindByID(ctx context.Context, id string) (*dbs.AuthSelectUserByIDRow, error)
 	CreateUser(ctx context.Context, user *dbs.AuthCreateUserParams) (*dbs.AuthCreateUserRow, error)
 	UpdateVisitedAt(ctx context.Context, id string) (*dbs.AuthUpdateVisitedAtRow, error)
 
@@ -29,6 +30,10 @@ func NewAuthRepository(db *dbs.Queries) IAuthRepository {
 // ===== Users ======
 func (r *AuthRepository) FindByUsername(ctx context.Context, username string) (*dbs.AuthSelectUserCredentialsRow, error) {
 	return r.db.AuthSelectUserCredentials(ctx, username)
+}
+
+func (r *AuthRepository) FindByID(ctx context.Context, id string) (*dbs.AuthSelectUserByIDRow, error) {
+	return r.db.AuthSelectUserByID(ctx, id)
 }
 
 func (r *AuthRepository) CreateUser(ctx context.Context, user *dbs.AuthCreateUserParams) (*dbs.AuthCreateUserRow, error) {

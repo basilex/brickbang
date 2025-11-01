@@ -8,6 +8,16 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Apikey struct {
+	ID        string           `json:"id"`
+	UserID    string           `json:"user_id"`
+	KeyHash   string           `json:"key_hash"`
+	IsActive  bool             `json:"is_active"`
+	Name      string           `json:"name"`
+	LastuseAt pgtype.Timestamp `json:"lastuse_at"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
 type Contact struct {
 	ID        string           `json:"id"`
 	UserID    string           `json:"user_id"`

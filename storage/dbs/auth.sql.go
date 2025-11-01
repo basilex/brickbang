@@ -11,10 +11,145 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const authCreateAPIKey = `-- name: AuthCreateAPIKey :one
+insert into apikey (user_id, key_hash, name)
+values ($1, $2, $3)
+returning id, user_id, key_hash, is_active, name, lastuse_at, created_at
+`
+
+type AuthCreateAPIKeyParams struct {
+	UserID  string `json:"user_id"`
+	KeyHash string `json:"key_hash"`
+	Name    string `json:"name"`
+}
+
+// AuthCreateAPIKey
+//
+//	insert into apikey (user_id, key_hash, name)
+//	values ($1, $2, $3)
+//	returning id, user_id, key_hash, is_active, name, lastuse_at, created_at
+func (q *Queries) AuthCreateAPIKey(ctx context.Context, arg *AuthCreateAPIKeyParams) (*Apikey, error) {
+	row := q.db.QueryRow(ctx, authCreateAPIKey, arg.UserID, arg.KeyHash, arg.Name)
+	var i Apikey
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.KeyHash,
+		&i.IsActive,
+		&i.Name,
+		&i.LastuseAt,
+		&i.CreatedAt,
+	)
+	return &i, err
+}
+
+const authCreateUser = `-- name: AuthCreateUser :one
+insert into users (username, password, is_checked)
+values ($1, $2, $3)
+returning id, username, password, is_blocked, is_checked, blocked_at, checked_at, visited_at, created_at, updated_at
+`
+
+type AuthCreateUserParams struct {
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+	IsChecked bool   `json:"is_checked"`
+}
+
+type AuthCreateUserRow struct {
+	ID        string           `json:"id"`
+	Username  string           `json:"username"`
+	Password  string           `json:"password"`
+	IsBlocked bool             `json:"is_blocked"`
+	IsChecked bool             `json:"is_checked"`
+	BlockedAt pgtype.Timestamp `json:"blocked_at"`
+	CheckedAt pgtype.Timestamp `json:"checked_at"`
+	VisitedAt pgtype.Timestamp `json:"visited_at"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
+// AuthCreateUser
+//
+//	insert into users (username, password, is_checked)
+//	values ($1, $2, $3)
+//	returning id, username, password, is_blocked, is_checked, blocked_at, checked_at, visited_at, created_at, updated_at
+func (q *Queries) AuthCreateUser(ctx context.Context, arg *AuthCreateUserParams) (*AuthCreateUserRow, error) {
+	row := q.db.QueryRow(ctx, authCreateUser, arg.Username, arg.Password, arg.IsChecked)
+	var i AuthCreateUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Password,
+		&i.IsBlocked,
+		&i.IsChecked,
+		&i.BlockedAt,
+		&i.CheckedAt,
+		&i.VisitedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const authDeleteAPIKey = `-- name: AuthDeleteAPIKey :exec
+delete from apikey
+where id = $1
+`
+
+// AuthDeleteAPIKey
+//
+//	delete from apikey
+//	where id = $1
+func (q *Queries) AuthDeleteAPIKey(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, authDeleteAPIKey, id)
+	return err
+}
+
+const authSelectAPIKeysByUser = `-- name: AuthSelectAPIKeysByUser :many
+
+select id, user_id, key_hash, is_active, name, lastuse_at, created_at
+from apikey
+where user_id = $1
+`
+
+// API Keys
+//
+//	select id, user_id, key_hash, is_active, name, lastuse_at, created_at
+//	from apikey
+//	where user_id = $1
+func (q *Queries) AuthSelectAPIKeysByUser(ctx context.Context, userID string) ([]*Apikey, error) {
+	rows, err := q.db.Query(ctx, authSelectAPIKeysByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*Apikey
+	for rows.Next() {
+		var i Apikey
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.KeyHash,
+			&i.IsActive,
+			&i.Name,
+			&i.LastuseAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const authSelectUserCredentials = `-- name: AuthSelectUserCredentials :one
+
 select id, username, password, is_blocked, is_checked, blocked_at, checked_at
-  from users u
- where u.username = $1
+from users
+where username = $1
 `
 
 type AuthSelectUserCredentialsRow struct {
@@ -27,11 +162,11 @@ type AuthSelectUserCredentialsRow struct {
 	CheckedAt pgtype.Timestamp `json:"checked_at"`
 }
 
-// AuthSelectUserCredentials
+// Users
 //
 //	select id, username, password, is_blocked, is_checked, blocked_at, checked_at
-//	  from users u
-//	 where u.username = $1
+//	from users
+//	where username = $1
 func (q *Queries) AuthSelectUserCredentials(ctx context.Context, username string) (*AuthSelectUserCredentialsRow, error) {
 	row := q.db.QueryRow(ctx, authSelectUserCredentials, username)
 	var i AuthSelectUserCredentialsRow
@@ -48,8 +183,10 @@ func (q *Queries) AuthSelectUserCredentials(ctx context.Context, username string
 }
 
 const authUpdateVisitedAt = `-- name: AuthUpdateVisitedAt :one
-update users set visited_at = now() where id = $1
-       returning id, username, checked_at, visited_at, created_at, updated_at
+update users
+set visited_at = now()
+where id = $1
+returning id, username, checked_at, visited_at, created_at, updated_at
 `
 
 type AuthUpdateVisitedAtRow struct {
@@ -63,8 +200,10 @@ type AuthUpdateVisitedAtRow struct {
 
 // AuthUpdateVisitedAt
 //
-//	update users set visited_at = now() where id = $1
-//	       returning id, username, checked_at, visited_at, created_at, updated_at
+//	update users
+//	set visited_at = now()
+//	where id = $1
+//	returning id, username, checked_at, visited_at, created_at, updated_at
 func (q *Queries) AuthUpdateVisitedAt(ctx context.Context, id string) (*AuthUpdateVisitedAtRow, error) {
 	row := q.db.QueryRow(ctx, authUpdateVisitedAt, id)
 	var i AuthUpdateVisitedAtRow

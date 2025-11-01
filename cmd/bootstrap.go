@@ -1,16 +1,19 @@
 package cmd
 
 import (
+	"context"
 	"log/slog"
 	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 
+	"brickbang/internal"
 	"brickbang/internal/config"
-	"brickbang/internal/controller"
-	"brickbang/internal/middleware"
 )
 
 var (
@@ -21,6 +24,7 @@ var (
 	Compile = "none"
 )
 
+// Metadata returns server metadata, useful for health/version endpoints
 func Metadata() map[string]string {
 	return map[string]string{
 		"version": Version,
@@ -31,6 +35,7 @@ func Metadata() map[string]string {
 	}
 }
 
+// ServerPrefork sets GOMAXPROCS based on the configured child process count.
 func ServerPrefork(maxprocs int) int {
 	if maxprocs <= 0 {
 		maxprocs = runtime.NumCPU()
@@ -39,11 +44,12 @@ func ServerPrefork(maxprocs int) int {
 	return maxprocs
 }
 
+// Run initializes the Fiber server, dependencies, routes, and starts listening
 func Run() {
 	cfg := config.Get()
 	maxprocs := ServerPrefork(cfg.ServerChildProcesses)
 
-	// Server setup
+	// ===== Fiber app setup =====
 	app := fiber.New(fiber.Config{
 		Prefork:               true,
 		DisableStartupMessage: true,
@@ -52,7 +58,7 @@ func Run() {
 		BodyLimit:             cfg.ServerMaxHeaderBytes,
 	})
 
-	// CORS middleware
+	// ===== CORS middleware =====
 	if cfg.CORSEnabled {
 		app.Use(cors.New(cors.Config{
 			AllowOrigins:     cfg.CORSAllowOrigin,
@@ -64,21 +70,33 @@ func Run() {
 		}))
 	}
 
-	// Middlewares
-	app.Use(middleware.AuthMiddleware)
-	app.Use(middleware.RBACMiddleware)
+	// ===== Initialize dependencies and routes =====
+	container := internal.InitDependencies()
+	internal.NewRegistrator(app, container).RegisterAll().Finalize()
 
-	// API versioning
-	api := app.Group("/api")
-	v1 := api.Group("/v1")
+	// ===== Signal handling for graceful shutdown =====
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP,
+	)
+	defer stop()
 
-	// Route controllers
-	controller.RegisterAuxRoutes(v1)
-	controller.RegisterUserRoutes(v1)
+	// Channel to capture server errors
+	serverErr := make(chan error, 1)
 
-	// Logging parent and childs
-	if !fiber.IsChild() {
-		slog.Info("BrickBang server",
+	// Start Fiber server in goroutine
+	go func() {
+		serverErr <- app.Listen(cfg.ServerAddress)
+	}()
+
+	// Master vs Child process logging
+	if fiber.IsChild() {
+		slog.Info(
+			"BrickBang child process started", "pid", os.Getpid(), "env", cfg.Env,
+		)
+	} else {
+		// Master process logs initial info
+		slog.Info("BrickBang server starting...",
 			"prefork", true,
 			"maxproc", maxprocs,
 			"address", cfg.ServerAddress,
@@ -88,14 +106,33 @@ func Run() {
 			"gobuild", Gobuild,
 			"compile", Compile,
 		)
-	} else {
-		slog.Info(
-			"BrickBang child process started", "pid", os.Getpid(), "env", cfg.Env,
-		)
+
+		// Wait a short period to ensure all children started
+		time.Sleep(200 * time.Millisecond)
+		slog.Info("BrickBang server listener started", "address", cfg.ServerAddress)
 	}
 
-	// Server listener
-	if err := app.Listen(cfg.ServerAddress); err != nil {
-		slog.Error("Error", "Listen", err)
+	// Wait for shutdown or server error
+	select {
+	case <-ctx.Done():
+		slog.Info("Received shutdown signal, exiting gracefully...")
+
+		// Shutdown Fiber with timeout
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := app.ShutdownWithContext(shutdownCtx); err != nil {
+			slog.Error("Fiber shutdown error", "error", err)
+		}
+
+		// Close DB pool if exists
+		if container.DBPool != nil {
+			container.DBPool.Close()
+			slog.Info("Database pool closed")
+		}
+	case err := <-serverErr:
+		if err != nil {
+			slog.Error("Server stopped unexpectedly", "error", err)
+		}
 	}
+	slog.Info("BrickBang server stopped")
 }

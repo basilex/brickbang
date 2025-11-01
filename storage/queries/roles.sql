@@ -1,4 +1,4 @@
--- name: RolessNew :one
+-- name: RolesNew :one
 insert into roles(name) values(@name) returning *;
 
 -- name: RolesCount :one

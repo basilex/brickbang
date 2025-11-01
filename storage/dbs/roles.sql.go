@@ -36,6 +36,25 @@ func (q *Queries) RolesDeleteByID(ctx context.Context, id string) (string, error
 	return id, err
 }
 
+const rolesNew = `-- name: RolesNew :one
+insert into roles(name) values($1) returning id, name, created_at, updated_at
+`
+
+// RolesNew
+//
+//	insert into roles(name) values($1) returning id, name, created_at, updated_at
+func (q *Queries) RolesNew(ctx context.Context, name string) (*Role, error) {
+	row := q.db.QueryRow(ctx, rolesNew, name)
+	var i Role
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
 const rolesSelect = `-- name: RolesSelect :many
 select id, name, created_at, updated_at
   from roles r
@@ -134,25 +153,6 @@ type RolesUpdateByIDParams struct {
 //	   set name = $1 where id = $2 returning id, name, created_at, updated_at
 func (q *Queries) RolesUpdateByID(ctx context.Context, arg *RolesUpdateByIDParams) (*Role, error) {
 	row := q.db.QueryRow(ctx, rolesUpdateByID, arg.Name, arg.ID)
-	var i Role
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return &i, err
-}
-
-const rolessNew = `-- name: RolessNew :one
-insert into roles(name) values($1) returning id, name, created_at, updated_at
-`
-
-// RolessNew
-//
-//	insert into roles(name) values($1) returning id, name, created_at, updated_at
-func (q *Queries) RolessNew(ctx context.Context, name string) (*Role, error) {
-	row := q.db.QueryRow(ctx, rolessNew, name)
 	var i Role
 	err := row.Scan(
 		&i.ID,

@@ -26,9 +26,9 @@ insert into users(username, password, is_checked) values
     ('admin', crypt('passw0rd', gen_salt('bf', 12)), true),
     ('alexander.vasilenko@gmail.com', crypt('passw-rd', gen_salt('bf', 12)), true);
 --
--- Entity role
+-- Entity roles
 --
-create table role (
+create table roles (
     id              varchar(32)     not null default xid() primary key,
     name            varchar(255)    not null unique,
     created_at      timestamp       not null default timezone('utc', now()),
@@ -36,10 +36,10 @@ create table role (
 );
 
 create trigger users_updated_at
-	before update on role for each row
+	before update on roles for each row
 	execute procedure trigger_updated_at();
 
-insert into role(name) values
+insert into roles(name) values
     ('SYS'),
     ('ADMIN'),
     ('EDITOR'),
@@ -132,6 +132,24 @@ begin
     insert into contact(user_id, class, content) values(v_user_id, 'mobile', '+380952066922');
     insert into contact(user_id, class, content) values(v_user_id, 'telegram', '@Basilex');
 end $$;
+--
+-- Entity apikey
+--
+create table apikey (
+    id          varchar(32)   not null default xid() primary key,
+    user_id     varchar(32)   not null references users(id) on delete cascade,
+    key_hash    varchar(255)  not null unique,
+    is_active   bool          not null default true,
+    name        varchar(255)  not null, -- human-readable label
+    lastuse_at  timestamp     not null default '1000-01-01'::timestamp,
+    created_at  timestamp     not null default timezone('utc', now())
+);
+
+create index apikey_user_id_idx on apikey(user_id);
+
+create trigger apikey_updated_at
+    before update on apikey for each row
+    execute procedure trigger_updated_at();
 --
 -- *** VIEWS LAYER
 --

@@ -15,6 +15,8 @@ import (
 type Config struct {
 	Env string
 
+	DatabaseDSN string
+
 	ServerAddress         string
 	ServerReadTimeout     time.Duration
 	ServerWriteTimeout    time.Duration
@@ -29,17 +31,6 @@ type Config struct {
 	CORSAllowCredentials bool
 	CORSExposeHeaders    string
 	CORSMaxAge           time.Duration
-
-	PostgresDB                string
-	PostgresHost              string
-	PostgresPort              int
-	PostgresUser              string
-	PostgresPassword          string
-	PostgresMaxConns          int
-	PostgresMinConns          int
-	PostgresMaxConnLifeTime   time.Duration
-	PostgresMaxConnIdleTime   time.Duration
-	PostgresHealthCheckPeriod time.Duration
 
 	TLSEnabled  bool
 	TLSCertFile string
@@ -66,6 +57,8 @@ func Init(env string) *Config {
 		if err := godotenv.Load(envFile); err != nil {
 			slog.Warn("Failed to load .env file, fallback to system env", "file", envFile, "err", err)
 		}
+		cfg.DatabaseDSN = getEnv("DATABASE_DSN", "postgres://postgres:password@postgres:5432/brickbang_dev?sslmode=disable")
+
 		cfg.ServerAddress = getEnv("SERVER_ADDRESS", "0.0.0.0:8080")
 		cfg.ServerReadTimeout = parseDuration(getEnv("SERVER_READ_TIMEOUT", "3s"))
 		cfg.ServerWriteTimeout = parseDuration(getEnv("SERVER_WRITE_TIMEOUT", "3s"))
@@ -80,17 +73,6 @@ func Init(env string) *Config {
 		cfg.CORSAllowCredentials = parseBool(getEnv("CORS_ALLOW_CREDENTIALS", "false"))
 		cfg.CORSExposeHeaders = getEnv("CORS_EXPOSE_HEADERS", "*")
 		cfg.CORSMaxAge = parseDuration(getEnv("CORS_MAX_AGE", "10m"))
-
-		cfg.PostgresDB = getEnv("POSTGRES_DB", "brickbang_dev")
-		cfg.PostgresHost = getEnv("POSTGRES_HOST", "postgres")
-		cfg.PostgresPort = parseInt(getEnv("POSTGRES_PORT", "5432"))
-		cfg.PostgresUser = getEnv("POSTGRES_USER", "system")
-		cfg.PostgresPassword = getEnv("POSTGRES_PASSWORD", "")
-		cfg.PostgresMaxConns = parseInt(getEnv("POSTGRES_MAX_CONNS", "100"))
-		cfg.PostgresMinConns = parseInt(getEnv("POSTGRES_MIN_CONNS", "5"))
-		cfg.PostgresMaxConnLifeTime = parseDuration(getEnv("POSTGRES_MAX_CONN_LIFE_TIME", "10m"))
-		cfg.PostgresMaxConnIdleTime = parseDuration(getEnv("POSTGRES_MAX_CONN_IDLE_TIME", "3m"))
-		cfg.PostgresHealthCheckPeriod = parseDuration(getEnv("POSTGRES_HEALTH_CHECK_PERIOD", "30s"))
 
 		cfg.TLSEnabled = parseBool(getEnv("TLS_ENABLED", "false"))
 		cfg.TLSCertFile = getEnv("TLS_CERT_FILE", "./cert/server.crt")

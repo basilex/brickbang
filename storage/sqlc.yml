@@ -1,0 +1,30 @@
+version: 2
+sql:
+  - engine: postgresql
+    schema:
+      - schema
+    queries:
+      - queries
+    gen:
+      go:
+        out: dbs
+        package: dbs
+        sql_package: pgx/v5
+        emit_json_tags: true
+        emit_sql_as_comment: true
+        emit_prepared_queries: false
+        emit_result_struct_pointers: true
+        emit_params_struct_pointers: true
+        json_tags_case_style: snake
+        overrides:
+          - db_type: "text"
+            go_type: "string"
+            nullable: false
+          - db_type: "character varying"
+            go_type: "string"
+            nullable: false
+          - db_type: "varchar"
+            go_type: "string"
+            nullable: false
+          - db_type: jsonb
+            go_type: "json.RawMessage"

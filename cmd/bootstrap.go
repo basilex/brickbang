@@ -109,7 +109,7 @@ func Run() {
 
 		// Wait a short period to ensure all children started
 		time.Sleep(200 * time.Millisecond)
-		slog.Info("BrickBang server listener started", "address", cfg.ServerAddress)
+		slog.Info("BrickBang server started", "address", cfg.ServerAddress)
 	}
 
 	// Wait for shutdown or server error

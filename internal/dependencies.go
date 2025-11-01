@@ -23,24 +23,24 @@ func InitDependencies() *Container {
 	cfg := config.Get()
 	ctx := context.Background()
 
-	// ===== DB Pool =====
+	// DB Pool
 	dbPool, err := pgxpool.New(ctx, cfg.DatabaseDSN)
 	if err != nil {
 		panic(err)
 	}
 
-	// ===== Queries =====
+	// DB Queries
 	queries := dbs.New(dbPool)
 
-	// ===== Repository layer =====
+	// Repository layer
 	auxRepo := repository.NewAuxRepository()
 	authRepo := repository.NewAuthRepository(queries)
 
-	// ===== Service layer =====
+	// Service layer
 	auxService := service.NewAuxService(auxRepo)
 	authService := service.NewAuthService(authRepo, cfg.JWTSecret, cfg.JWTAccessExpiration)
 
-	// ===== Controller layer =====
+	// Controller layer
 	auxController := controller.NewAuxController(auxService)
 	authController := controller.NewAuthController(authService)
 

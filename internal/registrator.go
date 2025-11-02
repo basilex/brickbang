@@ -8,15 +8,17 @@ import (
 	"brickbang/internal/middleware"
 )
 
-// Registrator manages route registration with chainable groups.
+// Registrator управляет регистрацией маршрутов приложения.
+// Он поддерживает цепочечный стиль группировки и автоматическую регистрацию контроллеров.
 type Registrator struct {
 	app       *fiber.App
 	container *Container
-	current   fiber.Router
-	path      string
+	base      fiber.Router // базовая группа /api/v1
+	current   fiber.Router // текущая активная группа
+	path      string       // для логирования
 }
 
-// NewRegistrator initializes base API groups (/api/v1)
+// NewRegistrator инициализирует базовую структуру API: /api/v1
 func NewRegistrator(app *fiber.App, container *Container) *Registrator {
 	api := app.Group("/api")
 	v1 := api.Group("/v1")
@@ -24,64 +26,61 @@ func NewRegistrator(app *fiber.App, container *Container) *Registrator {
 	return &Registrator{
 		app:       app,
 		container: container,
+		base:      v1,
 		current:   v1,
 		path:      "/api/v1",
 	}
 }
 
-// WithGroup creates a new nested route group with optional middlewares
+// WithGroup создаёт новую группу маршрутов от базового уровня (/api/v1)
+// с возможностью указания middleware.
 func (r *Registrator) WithGroup(prefix string, middlewares ...fiber.Handler) *Registrator {
-	group := r.current.Group(prefix)
-
-	// Convert []fiber.Handler to []interface{} for group.Use()
-	if len(middlewares) > 0 {
-		handlers := make([]interface{}, len(middlewares))
-		for i, h := range middlewares {
-			handlers[i] = h
-		}
-		group.Use(handlers...)
-	}
+	group := r.base.Group(prefix, middlewares...)
+	slog.Debug("Route group registered", "path", r.path+prefix)
 	r.current = group
-	r.path += prefix
-	slog.Debug("Route group registered", "path", r.path)
 	return r
 }
 
-// WithPublic defines a public route group
-func (r *Registrator) WithPublic() *Registrator {
-	return r.WithGroup("") // /api/v1
+// WithPublic определяет публичную группу маршрутов (без middleware)
+func (r *Registrator) WithPublic(prefix string) *Registrator {
+	return r.WithGroup(prefix)
 }
 
-// WithPrivate defines a protected route group (Auth + RBAC)
-func (r *Registrator) WithPrivate() *Registrator {
-	return r.WithGroup("", middleware.AuthMiddleware, middleware.RBACMiddleware)
+// WithPrivate определяет защищённую группу маршрутов (Auth + RBAC)
+func (r *Registrator) WithPrivate(prefix string) *Registrator {
+	return r.WithGroup(prefix, middleware.AuthMiddleware, middleware.RBACMiddleware)
 }
 
-// WithAdmin defines an admin route group
-func (r *Registrator) WithAdmin() *Registrator {
-	return r.WithGroup("/admin", middleware.AuthMiddleware, middleware.RBACMiddleware)
+// WithAdmin определяет административную группу маршрутов
+func (r *Registrator) WithAdmin(prefix string) *Registrator {
+	return r.WithGroup(prefix+"/admin", middleware.AuthMiddleware, middleware.RBACMiddleware)
 }
 
-// RegisterAll registers all controllers from the container
+// RegisterAll registers all application routes
 func (r *Registrator) RegisterAll() *Registrator {
-	r.WithPublic().WithGroup("/aux").RegisterAuxRoutes()
-	r.WithPrivate().WithGroup("/user").RegisterUserRoutes()
+	// Public routes
+	r.WithPublic("/aux").RegisterAuxRoutes()
+	r.WithPublic("/auth").RegisterAuthRoutes()
+
+	// Private routes
+	// ...
+
 	return r
 }
 
-// RegisterAuxRoutes registers /aux endpoints
+// RegisterAuxRoutes регистрирует маршруты /api/v1/aux
 func (r *Registrator) RegisterAuxRoutes() *Registrator {
 	r.container.AuxController.Register(r.current)
 	return r
 }
 
-// RegisterUserRoutes registers /user endpoints
-func (r *Registrator) RegisterUserRoutes() *Registrator {
+// RegisterAuthRoutes регистрирует маршруты /api/v1/auth
+func (r *Registrator) RegisterAuthRoutes() *Registrator {
 	r.container.AuthController.Register(r.current)
 	return r
 }
 
-// Finalize completes registration and can log final path
+// Finalize завершает процесс регистрации маршрутов (для логов)
 func (r *Registrator) Finalize() {
-	// slog.Info("Routes registration completed", "base_path", r.path)
+	slog.Info("Routes registration completed", "base_path", r.path)
 }

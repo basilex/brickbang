@@ -14,6 +14,9 @@ func AuthMiddleware(c *fiber.Ctx) error {
 	if strings.HasPrefix(path, "/api/v1/aux") && method == fiber.MethodGet {
 		return c.Next()
 	}
+	if strings.HasPrefix(path, "/api/v1/auth") && method == fiber.MethodGet {
+		return c.Next()
+	}
 
 	// API key authentication
 	apiKey := c.Get("X-API-Key")

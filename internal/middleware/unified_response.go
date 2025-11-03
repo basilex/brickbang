@@ -18,7 +18,7 @@ func UnifiedResponse() fiber.Handler {
 		err := c.Next()
 
 		// Skip wrapping if the "raw" flag is set in context
-		if raw, ok := c.Locals("raw").(bool); ok && raw {
+		if raw, ok := c.Locals("raw").(bool); ok && raw && err == nil {
 			return err
 		}
 

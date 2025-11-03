@@ -8,17 +8,17 @@ import (
 	"brickbang/internal/middleware"
 )
 
-// Registrator управляет регистрацией маршрутов приложения.
-// Он поддерживает цепочечный стиль группировки и автоматическую регистрацию контроллеров.
+// Registrator manages the registration of application routes.
+// It supports a chain-style grouping and automatic controller registration.
 type Registrator struct {
 	app       *fiber.App
 	container *Container
-	base      fiber.Router // базовая группа /api/v1
-	current   fiber.Router // текущая активная группа
-	path      string       // для логирования
+	base      fiber.Router // base group /api/v1
+	current   fiber.Router // currently active group
+	path      string       // for logging
 }
 
-// NewRegistrator инициализирует базовую структуру API: /api/v1
+// NewRegistrator initializes the base API structure: /api/v1
 func NewRegistrator(app *fiber.App, container *Container) *Registrator {
 	api := app.Group("/api")
 	v1 := api.Group("/v1")
@@ -32,8 +32,8 @@ func NewRegistrator(app *fiber.App, container *Container) *Registrator {
 	}
 }
 
-// WithGroup создаёт новую группу маршрутов от базового уровня (/api/v1)
-// с возможностью указания middleware.
+// WithGroup creates a new route group from the base level (/api/v1)
+// with optional middleware.
 func (r *Registrator) WithGroup(prefix string, middlewares ...fiber.Handler) *Registrator {
 	group := r.base.Group(prefix, middlewares...)
 	slog.Debug("Route group registered", "path", r.path+prefix)
@@ -41,17 +41,17 @@ func (r *Registrator) WithGroup(prefix string, middlewares ...fiber.Handler) *Re
 	return r
 }
 
-// WithPublic определяет публичную группу маршрутов (без middleware)
+// WithPublic defines a public route group (no middleware)
 func (r *Registrator) WithPublic(prefix string) *Registrator {
 	return r.WithGroup(prefix)
 }
 
-// WithPrivate определяет защищённую группу маршрутов (Auth + RBAC)
+// WithPrivate defines a protected route group (Auth + RBAC)
 func (r *Registrator) WithPrivate(prefix string) *Registrator {
 	return r.WithGroup(prefix, middleware.AuthMiddleware, middleware.RBACMiddleware)
 }
 
-// WithAdmin определяет административную группу маршрутов
+// WithAdmin defines an administrative route group
 func (r *Registrator) WithAdmin(prefix string) *Registrator {
 	return r.WithGroup(prefix+"/admin", middleware.AuthMiddleware, middleware.RBACMiddleware)
 }
@@ -68,19 +68,19 @@ func (r *Registrator) RegisterAll() *Registrator {
 	return r
 }
 
-// RegisterAuxRoutes регистрирует маршруты /api/v1/aux
+// RegisterAuxRoutes registers /api/v1/aux routes
 func (r *Registrator) RegisterAuxRoutes() *Registrator {
 	r.container.AuxController.Register(r.current)
 	return r
 }
 
-// RegisterAuthRoutes регистрирует маршруты /api/v1/auth
+// RegisterAuthRoutes registers /api/v1/auth routes
 func (r *Registrator) RegisterAuthRoutes() *Registrator {
 	r.container.AuthController.Register(r.current)
 	return r
 }
 
-// Finalize завершает процесс регистрации маршрутов (для логов)
+// Finalize completes the route registration process (for logging)
 func (r *Registrator) Finalize() {
 	slog.Info("Routes registration completed", "base_path", r.path)
 }

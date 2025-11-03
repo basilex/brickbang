@@ -12,6 +12,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Container holds all dependencies of the application.
+// It provides access to shared resources such as database pool and controllers.
 type Container struct {
 	DBPool *pgxpool.Pool
 
@@ -19,31 +21,35 @@ type Container struct {
 	AuthController controller.IAuthController
 }
 
-func InitDependencies() *Container {
+// Deps initializes and wires up all application dependencies.
+// It follows the dependency injection pattern by creating instances in the correct order:
+// Config → Database → Repository → Service → Controller.
+func Deps() *Container {
 	cfg := config.Get()
 	ctx := context.Background()
 
-	// DB Pool
+	// Initialize PostgreSQL connection pool
 	dbPool, err := pgxpool.New(ctx, cfg.DatabaseDSN)
 	if err != nil {
 		panic(err)
 	}
 
-	// DB Queries
+	// Initialize generated SQL queries wrapper (from sqlc)
 	queries := dbs.New(dbPool)
 
-	// Repository layer
+	// Repository layer: responsible for database access
 	auxRepo := repository.NewAuxRepository()
 	authRepo := repository.NewAuthRepository(queries)
 
-	// Service layer
+	// Service layer: contains business logic
 	auxService := service.NewAuxService(auxRepo)
 	authService := service.NewAuthService(authRepo, cfg.JWTSecret, cfg.JWTAccessExpiration)
 
-	// Controller layer
+	// Controller layer: handles HTTP requests/responses
 	auxController := controller.NewAuxController(auxService)
 	authController := controller.NewAuthController(authService)
 
+	// Return a fully initialized dependency container
 	return &Container{
 		DBPool:         dbPool,
 		AuxController:  auxController,

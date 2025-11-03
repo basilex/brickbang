@@ -17,6 +17,14 @@ import (
 	"brickbang/internal/middleware"
 )
 
+// Timeouts are defined
+// for startup and shutdown processes timeouts
+const (
+	startupTimeout  = 500 * time.Millisecond
+	shutdownTimeout = 5 * time.Second
+)
+
+// Embedded build-time variables linked during build process
 var (
 	Version = "none"
 	Staging = "none"
@@ -38,7 +46,7 @@ func Metadata() map[string]string {
 
 // ServerPrefork sets GOMAXPROCS based on the configured child process count.
 func ServerPrefork(maxprocs int) int {
-	if maxprocs <= 0 {
+	if maxprocs <= 0 || maxprocs > runtime.NumCPU() {
 		maxprocs = runtime.NumCPU()
 	}
 	runtime.GOMAXPROCS(maxprocs)
@@ -60,7 +68,7 @@ func Run() {
 		ErrorHandler:          middleware.ErrorHandler,
 	})
 
-	// ===== CORS middleware =====
+	// CORS middleware
 	if cfg.CORSEnabled {
 		app.Use(cors.New(cors.Config{
 			AllowOrigins:     cfg.CORSAllowOrigin,
@@ -72,14 +80,17 @@ func Run() {
 		}))
 	}
 
-	// ===== Initialize dependencies and routes =====
-	container := internal.InitDependencies()
+	// Unified response middleware
+	app.Use(middleware.UnifiedResponse())
+
+	// Initialize dependencies and routes
+	container := internal.Deps()
 	internal.NewRegistrator(app, container).RegisterAll().Finalize()
 
-	// ===== Signal handling for graceful shutdown =====
+	// Signal handling for graceful shutdown
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
-		os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP,
+		os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT,
 	)
 	defer stop()
 
@@ -98,7 +109,8 @@ func Run() {
 		)
 	} else {
 		// Master process logs initial info
-		slog.Info("BrickBang server starting...",
+		slog.Info("BrickBang server starting...")
+		slog.Debug("BrickBang server settings:",
 			"prefork", true,
 			"maxproc", maxprocs,
 			"address", cfg.ServerAddress,
@@ -110,7 +122,7 @@ func Run() {
 		)
 
 		// Wait a short period to ensure all children started
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(startupTimeout)
 		slog.Info("BrickBang server started", "address", cfg.ServerAddress)
 	}
 
@@ -120,7 +132,7 @@ func Run() {
 		slog.Info("Received shutdown signal, exiting gracefully...")
 
 		// Shutdown Fiber with timeout
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
 		if err := app.ShutdownWithContext(shutdownCtx); err != nil {
 			slog.Error("Fiber shutdown error", "error", err)

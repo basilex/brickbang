@@ -65,7 +65,7 @@ func Run() {
 
 	// Initialize dependencies and routes
 	container := internal.Deps()
-	internal.NewRegistrator(app, container).RegisterAll().Finalize()
+	internal.NewRegistrar(app, container).RegisterAll().Finalize()
 
 	// Signal handling for graceful shutdown
 	ctx, stop := signal.NotifyContext(

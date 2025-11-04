@@ -8,9 +8,9 @@ import (
 	"brickbang/internal/middleware"
 )
 
-// Registrator manages the registration of application routes.
+// Registrar manages the registration of application routes.
 // It supports a chain-style grouping and automatic controller registration.
-type Registrator struct {
+type Registrar struct {
 	app       *fiber.App
 	container *Container
 	base      fiber.Router // base group /api/v1
@@ -18,12 +18,12 @@ type Registrator struct {
 	path      string       // for logging
 }
 
-// NewRegistrator initializes the base API structure: /api/v1
-func NewRegistrator(app *fiber.App, container *Container) *Registrator {
+// NewRegistrar initializes the base API structure: /api/v1
+func NewRegistrar(app *fiber.App, container *Container) *Registrar {
 	api := app.Group("/api")
 	v1 := api.Group("/v1")
 
-	return &Registrator{
+	return &Registrar{
 		app:       app,
 		container: container,
 		base:      v1,
@@ -34,53 +34,53 @@ func NewRegistrator(app *fiber.App, container *Container) *Registrator {
 
 // WithGroup creates a new route group from the base level (/api/v1)
 // with optional middleware.
-func (r *Registrator) WithGroup(prefix string, middlewares ...fiber.Handler) *Registrator {
-	group := r.base.Group(prefix, middlewares...)
-	slog.Debug("Route group registered", "path", r.path+prefix)
-	r.current = group
-	return r
+func (rcv *Registrar) WithGroup(prefix string, middlewares ...fiber.Handler) *Registrar {
+	group := rcv.base.Group(prefix, middlewares...)
+	slog.Debug("Route group registered", "path", rcv.path+prefix)
+	rcv.current = group
+	return rcv
 }
 
 // WithPublic defines a public route group (no middleware)
-func (r *Registrator) WithPublic(prefix string) *Registrator {
+func (r *Registrar) WithPublic(prefix string) *Registrar {
 	return r.WithGroup(prefix)
 }
 
 // WithPrivate defines a protected route group (Auth + RBAC)
-func (r *Registrator) WithPrivate(prefix string) *Registrator {
+func (r *Registrar) WithPrivate(prefix string) *Registrar {
 	return r.WithGroup(prefix, middleware.AuthMiddleware, middleware.RBACMiddleware)
 }
 
 // WithAdmin defines an administrative route group
-func (r *Registrator) WithAdmin(prefix string) *Registrator {
-	return r.WithGroup(prefix+"/admin", middleware.AuthMiddleware, middleware.RBACMiddleware)
+func (rcv *Registrar) WithAdmin(prefix string) *Registrar {
+	return rcv.WithGroup(prefix+"/admin", middleware.AuthMiddleware, middleware.RBACMiddleware)
 }
 
 // RegisterAll registers all application routes
-func (r *Registrator) RegisterAll() *Registrator {
+func (rcv *Registrar) RegisterAll() *Registrar {
 	// Public routes
-	r.WithPublic("/aux").RegisterAuxRoutes()
-	r.WithPublic("/auth").RegisterAuthRoutes()
+	rcv.WithPublic("/aux").RegisterAuxRoutes()
+	rcv.WithPublic("/auth").RegisterAuthRoutes()
 
 	// Private routes
 	// ...
 
-	return r
+	return rcv
 }
 
 // RegisterAuxRoutes registers /api/v1/aux routes
-func (r *Registrator) RegisterAuxRoutes() *Registrator {
-	r.container.AuxController.Register(r.current)
-	return r
+func (rcv *Registrar) RegisterAuxRoutes() *Registrar {
+	rcv.container.AuxController.Register(rcv.current)
+	return rcv
 }
 
 // RegisterAuthRoutes registers /api/v1/auth routes
-func (r *Registrator) RegisterAuthRoutes() *Registrator {
-	r.container.AuthController.Register(r.current)
-	return r
+func (rcv *Registrar) RegisterAuthRoutes() *Registrar {
+	rcv.container.AuthController.Register(rcv.current)
+	return rcv
 }
 
 // Finalize completes the route registration process (for logging)
-func (r *Registrator) Finalize() {
-	slog.Info("Routes registration completed", "base_path", r.path)
+func (rcv *Registrar) Finalize() {
+	slog.Info("Routes registration completed", "base_path", rcv.path)
 }

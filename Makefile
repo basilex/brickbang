@@ -24,11 +24,11 @@ compile := $(shell date "+%FT%T.%N%:z")
 #
 # Go build: ldflags linker parameters
 #
-ldflags += -X $(sys)/cmd.Version=$(version)
-ldflags += -X $(sys)/cmd.Staging=$(staging)
-ldflags += -X $(sys)/cmd.Githash=$(githash)
-ldflags += -X $(sys)/cmd.Gobuild=$(gobuild)
-ldflags += -X $(sys)/cmd.Compile=$(compile)
+ldflags += -X $(sys)/internal.Version=$(version)
+ldflags += -X $(sys)/internal.Staging=$(staging)
+ldflags += -X $(sys)/internal.Githash=$(githash)
+ldflags += -X $(sys)/internal.Gobuild=$(gobuild)
+ldflags += -X $(sys)/internal.Compile=$(compile)
 #
 # Check the dependent bins
 #

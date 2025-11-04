@@ -19,9 +19,11 @@ import (
 )
 
 type IAuthService interface {
+	Register(ctx *fiber.Ctx) (map[string]any, error)
 	Login(ctx *fiber.Ctx) (map[string]any, error)
 	Refresh(ctx *fiber.Ctx) (map[string]any, error)
 	Me(ctx *fiber.Ctx) (map[string]any, error)
+
 	CreateAPIKey(ctx *fiber.Ctx) (map[string]any, error)
 	DeleteAPIKey(ctx *fiber.Ctx) (map[string]any, error)
 	ListAPIKeys(ctx *fiber.Ctx) ([]*dbs.Apikey, error)
@@ -41,7 +43,49 @@ func NewAuthService(repo repository.IAuthRepository, jwtSecret string, jwtTTL ti
 	}
 }
 
-// ================= JWT login =================
+// ============ Registration ============
+func (s *AuthService) Register(ctx *fiber.Ctx) (map[string]any, error) {
+	var body struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := ctx.BodyParser(&body); err != nil {
+		return nil, exception.ErrBadRequest("invalid JSON body")
+	}
+	if body.Username == "" || body.Password == "" {
+		return nil, exception.ErrUnprocessable("username and password are required")
+	}
+
+	existing, _ := s.repo.FindByUsername(context.Background(), body.Username)
+	if existing != nil {
+		return nil, exception.ErrConflict("user already exists")
+	}
+
+	hashed := HashPassword(body.Password)
+
+	user, err := s.repo.CreateUser(context.Background(), &dbs.AuthCreateUserParams{
+		Username: body.Username,
+		Password: hashed,
+	})
+	if err != nil {
+		return nil, exception.ErrInternal("failed to create user")
+	}
+
+	token, err := s.generateJWT(user.ID)
+	if err != nil {
+		return nil, exception.ErrInternal("failed to generate token")
+	}
+
+	return map[string]any{
+		"user": map[string]any{
+			"id":       user.ID,
+			"username": user.Username,
+		},
+		"token": token,
+	}, nil
+}
+
+// ============ Login ============
 func (s *AuthService) Login(ctx *fiber.Ctx) (map[string]any, error) {
 	var body struct {
 		Username string `json:"username"`
@@ -81,7 +125,7 @@ func (s *AuthService) Login(ctx *fiber.Ctx) (map[string]any, error) {
 	}, nil
 }
 
-// ================= JWT refresh =================
+// ============ Refresh ============
 func (s *AuthService) Refresh(ctx *fiber.Ctx) (map[string]any, error) {
 	userID, err := s.extractUserID(ctx)
 	if err != nil {
@@ -95,7 +139,7 @@ func (s *AuthService) Refresh(ctx *fiber.Ctx) (map[string]any, error) {
 	return map[string]any{"token": newToken}, nil
 }
 
-// ================= Current user =================
+// ============ Me ============
 func (s *AuthService) Me(ctx *fiber.Ctx) (map[string]any, error) {
 	userID, err := s.extractUserID(ctx)
 	if err != nil {
@@ -121,7 +165,7 @@ func (s *AuthService) Me(ctx *fiber.Ctx) (map[string]any, error) {
 	}, nil
 }
 
-// ================= API Key management =================
+// ============ API Keys ============
 func (s *AuthService) CreateAPIKey(ctx *fiber.Ctx) (map[string]any, error) {
 	var body struct {
 		UserID string `json:"user_id"`
@@ -181,7 +225,7 @@ func (s *AuthService) ListAPIKeys(ctx *fiber.Ctx) ([]*dbs.Apikey, error) {
 	return keys, nil
 }
 
-// ================= JWT helper =================
+// ============ JWT Helpers ============
 func (s *AuthService) generateJWT(userID string) (string, error) {
 	claims := jwt.MapClaims{
 		"sub": userID,
@@ -191,7 +235,6 @@ func (s *AuthService) generateJWT(userID string) (string, error) {
 	return token.SignedString([]byte(s.jwtSecret))
 }
 
-// ================= extract user helper =================
 func (s *AuthService) extractUserID(ctx *fiber.Ctx) (string, error) {
 	authHeader := ctx.Get("Authorization")
 	if authHeader == "" {
@@ -220,7 +263,7 @@ func (s *AuthService) extractUserID(ctx *fiber.Ctx) (string, error) {
 	return userID, nil
 }
 
-// ================= Password helpers =================
+// ============ Password / API Key Helpers ============
 func CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
@@ -234,7 +277,6 @@ func HashPassword(password string) string {
 	return string(hash)
 }
 
-// ================= API Key helpers =================
 func GenerateAPIKey(length int) string {
 	b := make([]byte, length)
 	_, err := rand.Read(b)

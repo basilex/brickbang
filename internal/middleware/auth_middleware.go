@@ -1,17 +1,23 @@
 package middleware
 
 import (
-	"strings"
+	"slices"
 
 	"github.com/gofiber/fiber/v2"
 )
+
+// Define public routes explicitly
+var publicRoutes = map[string][]string{
+	"/api/v1/aux":           {fiber.MethodGet},
+	"/api/v1/auth/login":    {fiber.MethodPost},
+	"/api/v1/auth/register": {fiber.MethodPost},
+}
 
 func AuthMiddleware(c *fiber.Ctx) error {
 	path := c.Path()
 	method := c.Method()
 
-	// public routes
-	if strings.HasPrefix(path, "/api/v1/aux") && method == fiber.MethodGet {
+	if methods, exists := publicRoutes[path]; exists && slices.Contains(methods, method) {
 		return c.Next()
 	}
 
@@ -22,6 +28,7 @@ func AuthMiddleware(c *fiber.Ctx) error {
 			"error": "missing API key",
 		})
 	}
+
 	// TODO: validate apiKey here
 	return c.Next()
 }

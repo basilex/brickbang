@@ -21,6 +21,7 @@ var (
 	ErrForbidden     = func(msg string) *AppError { return NewAppError(http.StatusForbidden, msg) }
 	ErrNotFound      = func(msg string) *AppError { return NewAppError(http.StatusNotFound, msg) }
 	ErrBadRequest    = func(msg string) *AppError { return NewAppError(http.StatusBadRequest, msg) }
+	ErrConflict      = func(msg string) *AppError { return NewAppError(http.StatusConflict, msg) }
 	ErrUnprocessable = func(msg string) *AppError { return NewAppError(http.StatusUnprocessableEntity, msg) }
 	ErrInternal      = func(msg string) *AppError { return NewAppError(http.StatusInternalServerError, msg) }
 )

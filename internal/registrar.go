@@ -42,13 +42,13 @@ func (rcv *Registrar) WithGroup(prefix string, middlewares ...fiber.Handler) *Re
 }
 
 // WithPublic defines a public route group (no middleware)
-func (r *Registrar) WithPublic(prefix string) *Registrar {
-	return r.WithGroup(prefix)
+func (rcv *Registrar) WithPublic(prefix string) *Registrar {
+	return rcv.WithGroup(prefix)
 }
 
 // WithPrivate defines a protected route group (Auth + RBAC)
-func (r *Registrar) WithPrivate(prefix string) *Registrar {
-	return r.WithGroup(prefix, middleware.AuthMiddleware, middleware.RBACMiddleware)
+func (rcv *Registrar) WithPrivate(prefix string) *Registrar {
+	return rcv.WithGroup(prefix, middleware.AuthMiddleware, middleware.RBACMiddleware)
 }
 
 // WithAdmin defines an administrative route group
@@ -62,7 +62,7 @@ func (rcv *Registrar) RegisterAll() *Registrar {
 	rcv.WithPublic("/aux").RegisterAuxRoutes()
 	rcv.WithPublic("/auth").RegisterAuthRoutes()
 
-	// Private routes
+	// Private routes to be continued...
 	// ...
 
 	return rcv

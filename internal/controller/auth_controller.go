@@ -19,28 +19,18 @@ func NewAuthController(s service.IAuthService) IAuthController {
 }
 
 func (rcv *AuthController) Register(router fiber.Router) {
-	// Registration route
-	router.Post("/register", rcv.Registering)
-
-	// User authentication routes
+	router.Get("/me", rcv.Me)
 	router.Post("/login", rcv.Login)
 	router.Post("/refresh", rcv.Refresh)
-	router.Get("/me", rcv.Me)
-
-	// API key management routes
-	router.Post("/apikey", rcv.CreateAPIKey)
-	router.Delete("/apikey/:id", rcv.DeleteAPIKey)
-	router.Get("/apikey", rcv.ListAPIKeys)
+	router.Post("/register", rcv.Registering)
 }
 
-// ============ Handlers ============
-
-func (rcv *AuthController) Registering(ctx *fiber.Ctx) error {
-	data, err := rcv.service.Register(ctx)
+func (rcv *AuthController) Me(ctx *fiber.Ctx) error {
+	data, err := rcv.service.Me(ctx)
 	if err != nil {
-		return err // глобальный ErrorHandler поймает
+		return err
 	}
-	return ctx.Status(fiber.StatusCreated).JSON(data)
+	return ctx.Status(fiber.StatusOK).JSON(data)
 }
 
 func (rcv *AuthController) Login(ctx *fiber.Ctx) error {
@@ -59,34 +49,10 @@ func (rcv *AuthController) Refresh(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusOK).JSON(data)
 }
 
-func (rcv *AuthController) Me(ctx *fiber.Ctx) error {
-	data, err := rcv.service.Me(ctx)
+func (rcv *AuthController) Registering(ctx *fiber.Ctx) error {
+	data, err := rcv.service.Register(ctx)
 	if err != nil {
-		return err
-	}
-	return ctx.Status(fiber.StatusOK).JSON(data)
-}
-
-func (rcv *AuthController) CreateAPIKey(ctx *fiber.Ctx) error {
-	data, err := rcv.service.CreateAPIKey(ctx)
-	if err != nil {
-		return err
+		return err // глобальный ErrorHandler поймает
 	}
 	return ctx.Status(fiber.StatusCreated).JSON(data)
-}
-
-func (rcv *AuthController) DeleteAPIKey(ctx *fiber.Ctx) error {
-	data, err := rcv.service.DeleteAPIKey(ctx)
-	if err != nil {
-		return err
-	}
-	return ctx.Status(fiber.StatusOK).JSON(data)
-}
-
-func (rcv *AuthController) ListAPIKeys(ctx *fiber.Ctx) error {
-	data, err := rcv.service.ListAPIKeys(ctx)
-	if err != nil {
-		return err
-	}
-	return ctx.Status(fiber.StatusOK).JSON(data)
 }

@@ -23,10 +23,6 @@ type IAuthService interface {
 	Login(ctx *fiber.Ctx) (map[string]any, error)
 	Refresh(ctx *fiber.Ctx) (map[string]any, error)
 	Me(ctx *fiber.Ctx) (map[string]any, error)
-
-	CreateAPIKey(ctx *fiber.Ctx) (map[string]any, error)
-	DeleteAPIKey(ctx *fiber.Ctx) (map[string]any, error)
-	ListAPIKeys(ctx *fiber.Ctx) ([]*dbs.Apikey, error)
 }
 
 type AuthService struct {
@@ -43,7 +39,7 @@ func NewAuthService(repo repository.IAuthRepository, jwtSecret string, jwtTTL ti
 	}
 }
 
-// ============ Registration ============
+// Registration
 func (s *AuthService) Register(ctx *fiber.Ctx) (map[string]any, error) {
 	var body struct {
 		Username string `json:"username"`
@@ -85,7 +81,7 @@ func (s *AuthService) Register(ctx *fiber.Ctx) (map[string]any, error) {
 	}, nil
 }
 
-// ============ Login ============
+// Login
 func (s *AuthService) Login(ctx *fiber.Ctx) (map[string]any, error) {
 	var body struct {
 		Username string `json:"username"`
@@ -125,7 +121,7 @@ func (s *AuthService) Login(ctx *fiber.Ctx) (map[string]any, error) {
 	}, nil
 }
 
-// ============ Refresh ============
+// Refresh
 func (s *AuthService) Refresh(ctx *fiber.Ctx) (map[string]any, error) {
 	userID, err := s.extractUserID(ctx)
 	if err != nil {
@@ -139,7 +135,7 @@ func (s *AuthService) Refresh(ctx *fiber.Ctx) (map[string]any, error) {
 	return map[string]any{"token": newToken}, nil
 }
 
-// ============ Me ============
+// Me
 func (s *AuthService) Me(ctx *fiber.Ctx) (map[string]any, error) {
 	userID, err := s.extractUserID(ctx)
 	if err != nil {
@@ -163,66 +159,6 @@ func (s *AuthService) Me(ctx *fiber.Ctx) (map[string]any, error) {
 		"created_at": user.CreatedAt,
 		"updated_at": user.UpdatedAt,
 	}, nil
-}
-
-// ============ API Keys ============
-func (s *AuthService) CreateAPIKey(ctx *fiber.Ctx) (map[string]any, error) {
-	var body struct {
-		UserID string `json:"user_id"`
-		Name   string `json:"name"`
-	}
-	if err := ctx.BodyParser(&body); err != nil {
-		return nil, exception.ErrBadRequest("invalid JSON body")
-	}
-	if body.UserID == "" || body.Name == "" {
-		return nil, exception.ErrUnprocessable("missing required fields: user_id, name")
-	}
-
-	rawKey := GenerateAPIKey(32)
-	keyHash := HashAPIKey(rawKey)
-
-	apikey, err := s.repo.CreateAPIKey(context.Background(), &dbs.AuthCreateAPIKeyParams{
-		UserID:  body.UserID,
-		KeyHash: keyHash,
-		Name:    body.Name,
-	})
-	if err != nil {
-		return nil, exception.ErrInternal("failed to create API key")
-	}
-
-	return map[string]any{
-		"apikey": apikey,
-		"key":    rawKey,
-	}, nil
-}
-
-func (s *AuthService) DeleteAPIKey(ctx *fiber.Ctx) (map[string]any, error) {
-	keyID := ctx.Params("id")
-	if keyID == "" {
-		return nil, exception.ErrBadRequest("missing key id")
-	}
-
-	err := s.repo.DeleteAPIKey(context.Background(), keyID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, exception.ErrNotFound("api key not found")
-		}
-		return nil, exception.ErrInternal("failed to delete api key")
-	}
-	return map[string]any{"deleted": keyID}, nil
-}
-
-func (s *AuthService) ListAPIKeys(ctx *fiber.Ctx) ([]*dbs.Apikey, error) {
-	userID := ctx.Params("user_id")
-	if userID == "" {
-		return nil, exception.ErrBadRequest("missing user id")
-	}
-
-	keys, err := s.repo.GetAPIKeysByUser(context.Background(), userID)
-	if err != nil {
-		return nil, exception.ErrInternal("failed to fetch API keys")
-	}
-	return keys, nil
 }
 
 // ============ JWT Helpers ============

@@ -24,26 +24,6 @@ const (
 	shutdownTimeout = 5 * time.Second
 )
 
-// Embedded build-time variables linked during build process
-var (
-	Version = "none"
-	Staging = "none"
-	Githash = "none"
-	Gobuild = "none"
-	Compile = "none"
-)
-
-// Metadata returns server metadata, useful for health/version endpoints
-func Metadata() map[string]string {
-	return map[string]string{
-		"version": Version,
-		"staging": Staging,
-		"githash": Githash,
-		"gobuild": Gobuild,
-		"compile": Compile,
-	}
-}
-
 // ServerPrefork sets GOMAXPROCS based on the configured child process count.
 func ServerPrefork(maxprocs int) int {
 	if maxprocs <= 0 || maxprocs > runtime.NumCPU() {
@@ -114,11 +94,11 @@ func Run() {
 			"prefork", true,
 			"maxproc", maxprocs,
 			"address", cfg.ServerAddress,
-			"version", Version,
-			"staging", Staging,
-			"githash", Githash,
-			"gobuild", Gobuild,
-			"compile", Compile,
+			"version", internal.Version,
+			"staging", internal.Staging,
+			"githash", internal.Githash,
+			"gobuild", internal.Gobuild,
+			"compile", internal.Compile,
 		)
 
 		// Wait a short period to ensure all children started

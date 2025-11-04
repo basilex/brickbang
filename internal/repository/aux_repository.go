@@ -3,7 +3,7 @@ package repository
 import "time"
 
 type IAuxRepository interface {
-	GetStartTime() time.Time
+	StartTime() time.Time
 }
 
 type auxRepository struct {
@@ -14,6 +14,6 @@ func NewAuxRepository() IAuxRepository {
 	return &auxRepository{startTime: time.Now()}
 }
 
-func (rcv *auxRepository) GetStartTime() time.Time {
+func (rcv *auxRepository) StartTime() time.Time {
 	return rcv.startTime
 }

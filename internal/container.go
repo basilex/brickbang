@@ -17,6 +17,8 @@ import (
 type Container struct {
 	DBPool *pgxpool.Pool
 
+	Metadata map[string]string
+
 	AuxController  controller.IAuxController
 	AuthController controller.IAuthController
 }
@@ -42,7 +44,7 @@ func Deps() *Container {
 	authRepo := repository.NewAuthRepository(queries)
 
 	// Service layer: contains business logic
-	auxService := service.NewAuxService(auxRepo)
+	auxService := service.NewAuxService(Metadata(), auxRepo)
 	authService := service.NewAuthService(authRepo, cfg.JWTSecret, cfg.JWTAccessExpiration)
 
 	// Controller layer: handles HTTP requests/responses

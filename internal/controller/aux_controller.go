@@ -19,18 +19,18 @@ func NewAuxController(service service.IAuxService) IAuxController {
 
 func (rcv *AuxController) Register(router fiber.Router) {
 	router.Get("/health", rcv.health)
-	router.Get("/version", rcv.version)
 	router.Get("/uptime", rcv.uptime)
+	router.Get("/metadata", rcv.metadata)
 }
 
 func (rcv *AuxController) health(ctx *fiber.Ctx) error {
-	return ctx.JSON(rcv.service.GetHealth())
-}
-
-func (rcv *AuxController) version(ctx *fiber.Ctx) error {
-	return ctx.JSON(rcv.service.GetVersion())
+	return ctx.JSON(rcv.service.Health())
 }
 
 func (rcv *AuxController) uptime(ctx *fiber.Ctx) error {
-	return ctx.JSON(rcv.service.GetUptime())
+	return ctx.JSON(rcv.service.Uptime())
+}
+
+func (rcv *AuxController) metadata(ctx *fiber.Ctx) error {
+	return ctx.JSON(rcv.service.Metadata())
 }

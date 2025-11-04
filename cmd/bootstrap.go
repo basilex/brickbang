@@ -64,7 +64,7 @@ func Run() {
 	app.Use(middleware.UnifiedResponse())
 
 	// Initialize dependencies and routes
-	container := internal.Deps()
+	container := internal.NewContainer()
 	internal.NewRegistrar(app, container).RegisterAll().Finalize()
 
 	// Signal handling for graceful shutdown

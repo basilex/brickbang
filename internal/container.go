@@ -23,10 +23,10 @@ type Container struct {
 	AuthController controller.IAuthController
 }
 
-// Deps initializes and wires up all application dependencies.
+// NewContainer initializes and wires up all application dependencies.
 // It follows the dependency injection pattern by creating instances in the correct order:
 // Config → Database → Repository → Service → Controller.
-func Deps() *Container {
+func NewContainer() *Container {
 	cfg := config.Get()
 	ctx := context.Background()
 
@@ -36,7 +36,9 @@ func Deps() *Container {
 		panic(err)
 	}
 
-	// Initialize generated SQL queries wrapper (from sqlc)
+	// Initialize metadata
+	// and generated SQL queries wrapper (from sqlc)
+	metadata := Metadata()
 	queries := dbs.New(dbPool)
 
 	// Repository layer: responsible for database access
@@ -44,7 +46,7 @@ func Deps() *Container {
 	authRepo := repository.NewAuthRepository(queries)
 
 	// Service layer: contains business logic
-	auxService := service.NewAuxService(Metadata(), auxRepo)
+	auxService := service.NewAuxService(metadata, auxRepo)
 	authService := service.NewAuthService(authRepo, cfg.JWTSecret, cfg.JWTAccessExpiration)
 
 	// Controller layer: handles HTTP requests/responses
@@ -54,6 +56,7 @@ func Deps() *Container {
 	// Return a fully initialized dependency container
 	return &Container{
 		DBPool:         dbPool,
+		Metadata:       metadata,
 		AuxController:  auxController,
 		AuthController: authController,
 	}

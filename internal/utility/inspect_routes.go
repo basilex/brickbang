@@ -37,7 +37,6 @@ func colorForMethod(method string) string {
 func InspectRoutes(app *fiber.App, useColors bool) {
 	routes := app.GetRoutes()
 
-	// Сортируем по пути
 	sort.Slice(routes, func(i, j int) bool {
 		return routes[i].Path < routes[j].Path
 	})

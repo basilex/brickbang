@@ -12,7 +12,6 @@ type IAuthRepository interface {
 	CreateUser(ctx context.Context, user *dbs.AuthCreateUserParams) (*dbs.AuthCreateUserRow, error)
 	UpdateVisitedAt(ctx context.Context, id string) (*dbs.AuthUpdateVisitedAtRow, error)
 }
-
 type AuthRepository struct {
 	db *dbs.Queries
 }
@@ -21,7 +20,6 @@ func NewAuthRepository(db *dbs.Queries) IAuthRepository {
 	return &AuthRepository{db: db}
 }
 
-// ===== Users ======
 func (r *AuthRepository) FindByUsername(ctx context.Context, username string) (*dbs.AuthSelectUserCredentialsRow, error) {
 	return r.db.AuthSelectUserCredentials(ctx, username)
 }

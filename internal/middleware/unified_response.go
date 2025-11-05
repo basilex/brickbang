@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
+	"github.com/rs/xid"
 )
 
 // UnifiedResponse provides a global middleware that wraps all responses (both success and error)
@@ -62,7 +62,7 @@ func UnifiedResponse() fiber.Handler {
 			"metadata": fiber.Map{
 				"status":    status,
 				"origin":    c.OriginalURL(),
-				"request":   uuid.New().String(),
+				"request":   xid.New().String(),
 				"timeout":   time.Since(start).Milliseconds(),
 				"timestamp": time.Now().UTC().Format(time.RFC3339),
 			},

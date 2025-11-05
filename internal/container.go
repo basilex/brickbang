@@ -19,9 +19,10 @@ type Container struct {
 
 	Metadata map[string]string
 
-	AuxController  controller.IAuxController
-	KeyController  controller.IKeyController
-	AuthController controller.IAuthController
+	AuxController     controller.IAuxController
+	KeyController     controller.IKeyController
+	AuthController    controller.IAuthController
+	CountryController controller.ICountryController
 }
 
 // NewContainer initializes and wires up all application dependencies.
@@ -46,23 +47,27 @@ func NewContainer() *Container {
 	auxRepo := repository.NewAuxRepository()
 	keyRepo := repository.NewKeyRepository(queries)
 	authRepo := repository.NewAuthRepository(queries)
+	countryRepo := repository.NewCountryRepository(queries)
 
 	// Service layer: contains business logic
 	auxService := service.NewAuxService(metadata, auxRepo)
 	keyService := service.NewKeyService(keyRepo)
 	authService := service.NewAuthService(authRepo, cfg.JWTSecret, cfg.JWTAccessExpiration)
+	countryService := service.NewCountryService(countryRepo)
 
 	// Controller layer: handles HTTP requests/responses
 	auxController := controller.NewAuxController(auxService)
 	keyController := controller.NewKeyController(keyService)
 	authController := controller.NewAuthController(authService)
+	countryController := controller.NewCountryController(countryService)
 
 	// Return a fully initialized dependency container
 	return &Container{
-		DBPool:         dbPool,
-		Metadata:       metadata,
-		AuxController:  auxController,
-		KeyController:  keyController,
-		AuthController: authController,
+		DBPool:            dbPool,
+		Metadata:          metadata,
+		AuxController:     auxController,
+		KeyController:     keyController,
+		AuthController:    authController,
+		CountryController: countryController,
 	}
 }

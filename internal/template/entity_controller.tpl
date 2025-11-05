@@ -51,10 +51,10 @@ func (rcv *{{.Entity}}Controller) Update(ctx *fiber.Ctx) error {
 	if err := ctx.BodyParser(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
 	}
+	req.ID = ctx.Params("id")
 	if err := rcv.validate.Struct(&req); err != nil {
 		return fiber.NewError(fiber.StatusUnprocessableEntity, err.Error())
 	}
-	req.ID = ctx.Params("id")
 	data, err := rcv.service.Update(ctx.Context(), &req)
 	if err != nil {
 		return err
@@ -64,10 +64,15 @@ func (rcv *{{.Entity}}Controller) Update(ctx *fiber.Ctx) error {
 
 func (rcv *{{.Entity}}Controller) Get(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
+	if id == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "ID parameter is required")
+	}
+
 	data, err := rcv.service.Get(ctx.Context(), id)
 	if err != nil {
 		return err
 	}
+
 	return ctx.Status(fiber.StatusOK).JSON(data)
 }
 

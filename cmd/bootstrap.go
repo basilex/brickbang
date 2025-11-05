@@ -97,6 +97,8 @@ func Run() {
 				"prefork", true,
 				"maxproc", maxprocs,
 				"address", cfg.ServerAddress,
+			)
+			slog.Info("BrickBang server metadata:",
 				"version", internal.Version,
 				"staging", internal.Staging,
 				"githash", internal.Githash,

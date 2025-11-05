@@ -3,13 +3,13 @@ package internal
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"brickbang/internal/config"
 	"brickbang/internal/controller"
 	"brickbang/internal/repository"
 	"brickbang/internal/service"
 	"brickbang/storage/dbs"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Container holds all dependencies of the application.

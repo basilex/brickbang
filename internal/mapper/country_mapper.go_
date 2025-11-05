@@ -1,0 +1,66 @@
+package mapper
+
+import (
+    "time"
+
+    "brickbang/storage/dbs"
+)
+
+type CountryCreateRequest struct {
+    Name string `json:"name" validate:"required,min=2,max=100"`
+    Code string `json:"code" validate:"required,len=3,uppercase"`
+}
+
+type CountryUpdateRequest struct {
+	ID   string `json:"id" validate:"required,xid"`
+    Name string `json:"name" validate:"omitempty,min=2,max=100"`
+    Code string `json:"code" validate:"omitempty,len=3,uppercase"`
+}
+
+type CountryResponse struct {
+    ID        string    `json:"id"`
+    Name      string    `json:"name"`
+    Code      string    `json:"code"`
+    CreatedAt time.Time `json:"created_at"`
+    UpdatedAt time.Time `json:"updated_at"`
+}
+
+func ToCountryNewParams(req *CountryCreateRequest) *dbs.CountryNewParams {
+    return &dbs.CountryNewParams{
+	Name:      req.Name,
+	Code:      req.Code,
+	CreatedAt: time.Now(),
+    }
+}
+
+func ToCountryUpdateParams(id string, req *CountryUpdateRequest) *dbs.CountryUpdateByIDParams {
+    params := &dbs.CountryUpdateByIDParams{
+	    ID:        req.ID,
+	    Name:      req.Name,
+	    Code:      req.Code,
+	    UpdatedAt: time.Now(),
+    }
+    return params
+}
+
+func ToCountryResponse(row *dbs.Country) *CountryResponse {
+    return &CountryResponse{
+	    ID:        row.ID,
+	    Name:      row.Name,
+	    Code:      row.Code,
+	    CreatedAt: row.CreatedAt,
+	    UpdatedAt: row.UpdatedAt,
+    }
+}
+
+func ToCountryResponseList(rows []dbs.Country) []*CountryResponse {
+    if len(rows) == 0 {
+	    return []*CountryResponse{}
+    }
+
+    result := make([]*CountryResponse, 0, len(rows))
+    for _, r := range rows {
+	    result = append(result, ToCountryResponse(&r))
+    }
+    return result
+}

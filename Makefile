@@ -123,5 +123,45 @@ dbs-version:
 
 .PHONY: dbs-gen dbs-up dbs-up1 dbs-down dbs-down1 dbs-drop dbs-version
 #
+# Generator section
+#
+# Colors
+BLUE := \033[0;34m
+GREEN := \033[0;32m
+RESET := \033[0m
+
+ENTITY ?= None
+MODULE_PATH ?= brickbang
+ENTITY_LOWER := $(shell echo $(ENTITY) | tr '[:upper:]' '[:lower:]')
+
+# Generic helper macro for sed replace (cross-platform)
+define SED_REPLACE
+	sed -i '' "s/{{.Entity}}/$(ENTITY)/g; s/{{.EntityLower}}/$(ENTITY_LOWER)/g; s|{{.ModulePath}}|$(MODULE_PATH)|g" $(1)
+endef
+
+# Generate mapper
+gen-mapper:
+	@cp internal/template/entity_mapper.tpl internal/mapper/$(ENTITY_LOWER)_mapper.go
+	@$(call SED_REPLACE,internal/mapper/$(ENTITY_LOWER)_mapper.go)
+	@echo "$(GREEN)[ok]$(RESET) Mapper for $(BLUE)$(ENTITY)$(RESET) created → internal/mapper/$(ENTITY_LOWER)_mapper.go"
+
+# Generate repository
+gen-repository:
+	@cp internal/template/entity_repository.tpl internal/repository/$(ENTITY_LOWER)_repository.go
+	@$(call SED_REPLACE,internal/repository/$(ENTITY_LOWER)_repository.go)
+	@echo "$(GREEN)[ok]$(RESET) Repository for $(BLUE)$(ENTITY)$(RESET) created → internal/repository/$(ENTITY_LOWER)_repository.go"
+
+# Generate service
+gen-service:
+	@cp internal/template/entity_service.tpl internal/service/$(ENTITY_LOWER)_service.go
+	@$(call SED_REPLACE,internal/service/$(ENTITY_LOWER)_service.go)
+	@echo "$(GREEN)[ok]$(RESET) Service for $(BLUE)$(ENTITY)$(RESET) created → internal/service/$(ENTITY_LOWER)_service.go"
+
+# Generate all together
+gen-all: gen-mapper gen-repository gen-service
+	@echo "$(GREEN)[done]$(RESET) All layers scaffolded for entity $(BLUE)$(ENTITY)$(RESET)"
+
+.PHONY: gen-mapper gen-repository gen-service gen-all
+#
 # eof
 #

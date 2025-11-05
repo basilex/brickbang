@@ -136,58 +136,43 @@ dbs-version:
 BLUE := \033[0;34m
 GREEN := \033[0;32m
 RESET := \033[0m
-#
-# Entity configuration
-#
+
 ENTITY ?= None
 MODULE_PATH ?= $(sys)
 ENTITY_LOWER := $(shell echo $(ENTITY) | tr '[:upper:]' '[:lower:]')
 #
-# Generic helper macro for sed replace (cross-platform)
+# Generic sed replace (cross-platform)
 #
 define SED_REPLACE
 	sed -i '' "s/{{.Entity}}/$(ENTITY)/g; s/{{.EntityLower}}/$(ENTITY_LOWER)/g; s|{{.ModulePath}}|$(MODULE_PATH)|g" $(1)
 endef
 #
-# Generate entity mapper
-# Ex: make gen-mapper ENTITY=<entity_name>
+# Universal entity layer generator
+# Usage: $(call GEN_ENTITY_LAYER,<template_name>,<target_dir>)
 #
+define GEN_ENTITY_LAYER
+	@cp internal/template/$(1).tpl internal/$(2)/$(ENTITY_LOWER)_$(subst entity_,,$(1)).go
+	@$(call SED_REPLACE,internal/$(2)/$(ENTITY_LOWER)_$(subst entity_,,$(1)).go)
+	@echo "$(GREEN)[ok]$(RESET) $(subst entity_,,$(1)) for $(BLUE)$(ENTITY)$(RESET) created → internal/$(2)/$(ENTITY_LOWER)_$(subst entity_,,$(1)).go"
+endef
+
 gen-mapper:
-	@cp internal/template/entity_mapper.tpl internal/mapper/$(ENTITY_LOWER)_mapper.go
-	@$(call SED_REPLACE,internal/mapper/$(ENTITY_LOWER)_mapper.go)
-	@echo "$(GREEN)[ok]$(RESET) Mapper for $(BLUE)$(ENTITY)$(RESET) created → internal/mapper/$(ENTITY_LOWER)_mapper.go"
-#
-# Generate entity repository
-# Ex: make gen-repository ENTITY=<entity_name>
-#
+	$(call GEN_ENTITY_LAYER,entity_mapper,mapper)
+
 gen-repository:
-	@cp internal/template/entity_repository.tpl internal/repository/$(ENTITY_LOWER)_repository.go
-	@$(call SED_REPLACE,internal/repository/$(ENTITY_LOWER)_repository.go)
-	@echo "$(GREEN)[ok]$(RESET) Repository for $(BLUE)$(ENTITY)$(RESET) created → internal/repository/$(ENTITY_LOWER)_repository.go"
-#
-# Generate entity service
-# Ex: make gen-service ENTITY=<entity_name>
-#
+	$(call GEN_ENTITY_LAYER,entity_repository,repository)
+
 gen-service:
-	@cp internal/template/entity_service.tpl internal/service/$(ENTITY_LOWER)_service.go
-	@$(call SED_REPLACE,internal/service/$(ENTITY_LOWER)_service.go)
-	@echo "$(GREEN)[ok]$(RESET) Service for $(BLUE)$(ENTITY)$(RESET) created → internal/service/$(ENTITY_LOWER)_service.go"
-#
-# Generate entity controller
-# Ex: make gen-controller ENTITY=<entity_name>
-#
+	$(call GEN_ENTITY_LAYER,entity_service,service)
+
 gen-controller:
-	@cp internal/template/entity_controller.tpl internal/controller/$(ENTITY_LOWER)_controller.go
-	@$(call SED_REPLACE,internal/controller/$(ENTITY_LOWER)_controller.go)
-	@echo "$(GREEN)[ok]$(RESET) Controller for $(BLUE)$(ENTITY)$(RESET) created → internal/controller/$(ENTITY_LOWER)_controller.go"
-#
-# Generate all together
-# Ex: make gen-all ENTITY=<entity_name>
-#
+	$(call GEN_ENTITY_LAYER,entity_controller,controller)
+
 gen-all: gen-mapper gen-repository gen-service gen-controller
 	@echo "$(GREEN)[done]$(RESET) All layers scaffolded for entity $(BLUE)$(ENTITY)$(RESET)"
 
 .PHONY: gen-mapper gen-repository gen-service gen-controller gen-all
+
 #
 # eof
 #

@@ -90,17 +90,20 @@ func Run() {
 	} else {
 		// Master process logs initial info
 		slog.Info("BrickBang server starting...")
-		slog.Debug("BrickBang server settings:",
-			"prefork", true,
-			"maxproc", maxprocs,
-			"address", cfg.ServerAddress,
-			"version", internal.Version,
-			"staging", internal.Staging,
-			"githash", internal.Githash,
-			"gobuild", internal.Gobuild,
-			"compile", internal.Compile,
-		)
 
+		if cfg.Env == "dev" && !fiber.IsChild() {
+			slog.Info("BrickBang server settings:",
+				"prefork", true,
+				"maxproc", maxprocs,
+				"address", cfg.ServerAddress,
+				"version", internal.Version,
+				"staging", internal.Staging,
+				"githash", internal.Githash,
+				"gobuild", internal.Gobuild,
+				"compile", internal.Compile,
+			)
+
+		}
 		// Wait a short period to ensure all children started
 		time.Sleep(startupTimeout)
 		slog.Info("BrickBang server started", "address", cfg.ServerAddress)

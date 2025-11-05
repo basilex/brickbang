@@ -26,9 +26,9 @@ func NewRegistrar(app *fiber.App, container *Container) *Registrar {
 	return &Registrar{
 		app:       app,
 		container: container,
+		path:      "/api/v1",
 		base:      v1,
 		current:   v1,
-		path:      "/api/v1",
 	}
 }
 
@@ -97,5 +97,5 @@ func (rcv *Registrar) RegisterCountryRoutes() *Registrar {
 
 // Finalize completes the route registration process (for logging)
 func (rcv *Registrar) Finalize() {
-	slog.Info("Routes registration completed", "base_path", rcv.path)
+	// slog.Info("Routes registration completed", "base_path", rcv.path)
 }

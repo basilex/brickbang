@@ -15,6 +15,7 @@ import (
 	"brickbang/internal"
 	"brickbang/internal/config"
 	"brickbang/internal/middleware"
+	"brickbang/internal/utility"
 )
 
 // Timeouts are defined
@@ -102,7 +103,7 @@ func Run() {
 				"gobuild", internal.Gobuild,
 				"compile", internal.Compile,
 			)
-
+			utility.InspectRoutes(app, false)
 		}
 		// Wait a short period to ensure all children started
 		time.Sleep(startupTimeout)

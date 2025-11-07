@@ -73,25 +73,25 @@ func (rcv *Registrar) RegisterAll() *Registrar {
 
 // RegisterKeyRoutes registers /api/v1/key routes
 func (rcv *Registrar) RegisterKeyRoutes() *Registrar {
-	rcv.container.KeyController.Register(rcv.current)
+	rcv.container.KeyModule.Controller().Register(rcv.current)
 	return rcv
 }
 
 // RegisterAuxRoutes registers /api/v1/aux routes
 func (rcv *Registrar) RegisterAuxRoutes() *Registrar {
-	rcv.container.AuxController.Register(rcv.current)
+	rcv.container.AuxModule.Controller().Register(rcv.current)
 	return rcv
 }
 
 // RegisterAuthRoutes registers /api/v1/auth routes
 func (rcv *Registrar) RegisterAuthRoutes() *Registrar {
-	rcv.container.AuthController.Register(rcv.current)
+	rcv.container.AuthModule.Controller().Register(rcv.current)
 	return rcv
 }
 
 // RegisterCountryRoutes registers /api/v1/countries routes
 func (rcv *Registrar) RegisterCountryRoutes() *Registrar {
-	rcv.container.CountryController.Register(rcv.current)
+	rcv.container.CountryModule.Controller().Register(rcv.current)
 	return rcv
 }
 

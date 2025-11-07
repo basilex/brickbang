@@ -1,53 +1,48 @@
 package repository
 
 import (
-	"context"
+    "context"
 
-	"brickbang/storage/dbs"
+    "brickbang/storage/dbs"
 )
 
 type ICountryRepository interface {
-	Count(ctx context.Context) (int64, error)
-	Select(ctx context.Context, params *dbs.CountrySelectParams) ([]*dbs.Country, error)
-	SelectByID(ctx context.Context, id string) (*dbs.Country, error)
-	SelectWithCurrencies(ctx context.Context, params *dbs.CountryCurrencySelectParams) ([]*dbs.CountryCurrencySelectRow, error)
-	Create(ctx context.Context, params *dbs.CountryNewParams) (*dbs.Country, error)
-	Update(ctx context.Context, params *dbs.CountryUpdateByIDParams) (*dbs.Country, error)
-	Delete(ctx context.Context, id string) (string, error)
+    Create(ctx context.Context, params *dbs.CreateCountryParams) (*dbs., error)
+    List(ctx context.Context, params *dbs.ListCountriesWithCurrenciesParams) ([]*dbs., error)
+    GetByID(ctx context.Context, id string) (*dbs., error)
+    UpdateByID(ctx context.Context, params *dbs.UpdateCountryByIDParams) (*dbs., error)
+    DeleteByID(ctx context.Context, id string) error
+    Count(ctx context.Context) (int64, error)
 }
 
-type countryRepository struct {
-	q *dbs.Queries
+type CountryRepository struct {
+    q *dbs.Queries
 }
 
 func NewCountryRepository(q *dbs.Queries) ICountryRepository {
-	return &countryRepository{q: q}
+    return &CountryRepository{q: q}
 }
 
-func (r *countryRepository) Count(ctx context.Context) (int64, error) {
-	return r.q.CountryCount(ctx)
+func (r *CountryRepository) Create(ctx context.Context, params *dbs.CreateCountryParams) (*dbs., error) {
+    return r.q.CreateCountry(ctx, *params)
 }
 
-func (r *countryRepository) Select(ctx context.Context, params *dbs.CountrySelectParams) ([]*dbs.Country, error) {
-	return r.q.CountrySelect(ctx, params)
+func (r *CountryRepository) List(ctx context.Context, params *dbs.ListCountriesWithCurrenciesParams) ([]*dbs., error) {
+    return r.q.ListCountries(ctx, *params)
 }
 
-func (r *countryRepository) SelectByID(ctx context.Context, id string) (*dbs.Country, error) {
-	return r.q.CountrySelectByID(ctx, id)
+func (r *CountryRepository) GetByID(ctx context.Context, id string) (*dbs., error) {
+    return r.q.GetCountryByID(ctx, id)
 }
 
-func (r *countryRepository) SelectWithCurrencies(ctx context.Context, params *dbs.CountryCurrencySelectParams) ([]*dbs.CountryCurrencySelectRow, error) {
-	return r.q.CountryCurrencySelect(ctx, params)
+func (r *CountryRepository) UpdateByID(ctx context.Context, params *dbs.UpdateCountryByIDParams) (*dbs., error) {
+    return r.q.UpdateCountryByID(ctx, *params)
 }
 
-func (r *countryRepository) Create(ctx context.Context, params *dbs.CountryNewParams) (*dbs.Country, error) {
-	return r.q.CountryNew(ctx, params)
+func (r *CountryRepository) DeleteByID(ctx context.Context, id string) error {
+    return r.q.DeleteCountryByID(ctx, id)
 }
 
-func (r *countryRepository) Update(ctx context.Context, params *dbs.CountryUpdateByIDParams) (*dbs.Country, error) {
-	return r.q.CountryUpdateByID(ctx, params)
-}
-
-func (r *countryRepository) Delete(ctx context.Context, id string) (string, error) {
-	return r.q.CountryDeleteByID(ctx, id)
+func (r *CountryRepository) Count(ctx context.Context) (int64, error) {
+    return r.q.CountCountries(ctx)
 }

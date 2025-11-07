@@ -11,146 +11,46 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countryCount = `-- name: CountryCount :one
-select count(*) from country
+const countCountries = `-- name: CountCountries :one
+SELECT count(*) FROM country
 `
 
-// CountryCount
+// CountCountries
 //
-//	select count(*) from country
-func (q *Queries) CountryCount(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, countryCount)
+//	SELECT count(*) FROM country
+func (q *Queries) CountCountries(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countCountries)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
-const countryCurrencySelect = `-- name: CountryCurrencySelect :many
-select cn.id, cn.name, cn.iso2, cn.iso3, cn.num_code, cn.created_at, cn.updated_at,
-  coalesce(
-    json_agg(
-      jsonb_build_object(
-        'id',         cr.id,
-        'name',       cr.name,
-        'code',       cr.code,
-        'num_code',   cr.num_code,
-        'symbol',     cr.symbol,
-        'created_at', cr.created_at,
-        'updated_at', cr.updated_at
-      )
-    ) filter (where cr.id is not null), '[]') as currencies
-  from country cn
-  left join country_currency cc on cn.id = cc.country_id
-  left join currency cr ON cc.currency_id = cr.id
- group by cn.id, cn.name
- order by $1::text
- limit  $3 offset $2
-`
-
-type CountryCurrencySelectParams struct {
-	SqlOrder  string `json:"sql_order"`
-	SqlOffset int32  `json:"sql_offset"`
-	SqlLimit  int32  `json:"sql_limit"`
-}
-
-type CountryCurrencySelectRow struct {
-	ID         string           `json:"id"`
-	Name       string           `json:"name"`
-	Iso2       string           `json:"iso2"`
-	Iso3       string           `json:"iso3"`
-	NumCode    int16            `json:"num_code"`
-	CreatedAt  pgtype.Timestamp `json:"created_at"`
-	UpdatedAt  pgtype.Timestamp `json:"updated_at"`
-	Currencies interface{}      `json:"currencies"`
-}
-
-// CountryCurrencySelect
-//
-//	select cn.id, cn.name, cn.iso2, cn.iso3, cn.num_code, cn.created_at, cn.updated_at,
-//	  coalesce(
-//	    json_agg(
-//	      jsonb_build_object(
-//	        'id',         cr.id,
-//	        'name',       cr.name,
-//	        'code',       cr.code,
-//	        'num_code',   cr.num_code,
-//	        'symbol',     cr.symbol,
-//	        'created_at', cr.created_at,
-//	        'updated_at', cr.updated_at
-//	      )
-//	    ) filter (where cr.id is not null), '[]') as currencies
-//	  from country cn
-//	  left join country_currency cc on cn.id = cc.country_id
-//	  left join currency cr ON cc.currency_id = cr.id
-//	 group by cn.id, cn.name
-//	 order by $1::text
-//	 limit  $3 offset $2
-func (q *Queries) CountryCurrencySelect(ctx context.Context, arg *CountryCurrencySelectParams) ([]*CountryCurrencySelectRow, error) {
-	rows, err := q.db.Query(ctx, countryCurrencySelect, arg.SqlOrder, arg.SqlOffset, arg.SqlLimit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []*CountryCurrencySelectRow
-	for rows.Next() {
-		var i CountryCurrencySelectRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Iso2,
-			&i.Iso3,
-			&i.NumCode,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.Currencies,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, &i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const countryDeleteByID = `-- name: CountryDeleteByID :one
-delete from country c where c.id = $1 returning id
-`
-
-// CountryDeleteByID
-//
-//	delete from country c where c.id = $1 returning id
-func (q *Queries) CountryDeleteByID(ctx context.Context, id string) (string, error) {
-	row := q.db.QueryRow(ctx, countryDeleteByID, id)
-	err := row.Scan(&id)
-	return id, err
-}
-
-const countryNew = `-- name: CountryNew :one
-insert into country (
+const createCountry = `-- name: CreateCountry :one
+INSERT INTO country (
 	name, iso2, iso3, num_code
-) values (
+) VALUES (
 	$1, $2, $3, $4
-) returning id, name, iso2, iso3, num_code, created_at, updated_at
+)
+RETURNING id, name, iso2, iso3, num_code, created_at, updated_at
 `
 
-type CountryNewParams struct {
+type CreateCountryParams struct {
 	Name    string `json:"name"`
 	Iso2    string `json:"iso2"`
 	Iso3    string `json:"iso3"`
 	NumCode int16  `json:"num_code"`
 }
 
-// CountryNew
+// CreateCountry
 //
-//	insert into country (
+//	INSERT INTO country (
 //		name, iso2, iso3, num_code
-//	) values (
+//	) VALUES (
 //		$1, $2, $3, $4
-//	) returning id, name, iso2, iso3, num_code, created_at, updated_at
-func (q *Queries) CountryNew(ctx context.Context, arg *CountryNewParams) (*Country, error) {
-	row := q.db.QueryRow(ctx, countryNew,
+//	)
+//	RETURNING id, name, iso2, iso3, num_code, created_at, updated_at
+func (q *Queries) CreateCountry(ctx context.Context, arg *CreateCountryParams) (*Country, error) {
+	row := q.db.QueryRow(ctx, createCountry,
 		arg.Name,
 		arg.Iso2,
 		arg.Iso3,
@@ -169,27 +69,70 @@ func (q *Queries) CountryNew(ctx context.Context, arg *CountryNewParams) (*Count
 	return &i, err
 }
 
-const countrySelect = `-- name: CountrySelect :many
-select id, name, iso2, iso3, num_code, created_at, updated_at
-  from country c
- order by $1::text
- limit $3 offset $2
+const deleteCountryByID = `-- name: DeleteCountryByID :one
+DELETE FROM country c
+ WHERE c.id = $1
+ RETURNING id
 `
 
-type CountrySelectParams struct {
+// DeleteCountryByID
+//
+//	DELETE FROM country c
+//	 WHERE c.id = $1
+//	 RETURNING id
+func (q *Queries) DeleteCountryByID(ctx context.Context, id string) (string, error) {
+	row := q.db.QueryRow(ctx, deleteCountryByID, id)
+	err := row.Scan(&id)
+	return id, err
+}
+
+const getCountryByID = `-- name: GetCountryByID :one
+SELECT id, name, iso2, iso3, num_code, created_at, updated_at
+  FROM country c
+ WHERE c.id = $1
+`
+
+// GetCountryByID
+//
+//	SELECT id, name, iso2, iso3, num_code, created_at, updated_at
+//	  FROM country c
+//	 WHERE c.id = $1
+func (q *Queries) GetCountryByID(ctx context.Context, id string) (*Country, error) {
+	row := q.db.QueryRow(ctx, getCountryByID, id)
+	var i Country
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Iso2,
+		&i.Iso3,
+		&i.NumCode,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const listCountries = `-- name: ListCountries :many
+SELECT id, name, iso2, iso3, num_code, created_at, updated_at
+  FROM country c
+ ORDER BY $1::text
+ LIMIT $3 OFFSET $2
+`
+
+type ListCountriesParams struct {
 	SqlOrder  string `json:"sql_order"`
 	SqlOffset int32  `json:"sql_offset"`
 	SqlLimit  int32  `json:"sql_limit"`
 }
 
-// CountrySelect
+// ListCountries
 //
-//	select id, name, iso2, iso3, num_code, created_at, updated_at
-//	  from country c
-//	 order by $1::text
-//	 limit $3 offset $2
-func (q *Queries) CountrySelect(ctx context.Context, arg *CountrySelectParams) ([]*Country, error) {
-	rows, err := q.db.Query(ctx, countrySelect, arg.SqlOrder, arg.SqlOffset, arg.SqlLimit)
+//	SELECT id, name, iso2, iso3, num_code, created_at, updated_at
+//	  FROM country c
+//	 ORDER BY $1::text
+//	 LIMIT $3 OFFSET $2
+func (q *Queries) ListCountries(ctx context.Context, arg *ListCountriesParams) ([]*Country, error) {
+	rows, err := q.db.Query(ctx, listCountries, arg.SqlOrder, arg.SqlOffset, arg.SqlLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -216,36 +159,120 @@ func (q *Queries) CountrySelect(ctx context.Context, arg *CountrySelectParams) (
 	return items, nil
 }
 
-const countrySelectByID = `-- name: CountrySelectByID :one
-select id, name, iso2, iso3, num_code, created_at, updated_at from country c where c.id = $1
+const listCountriesWithCurrencies = `-- name: ListCountriesWithCurrencies :many
+SELECT cn.id,
+       cn.name,
+       cn.iso2,
+       cn.iso3,
+       cn.num_code,
+       cn.created_at,
+       cn.updated_at,
+       COALESCE(
+         JSON_AGG(
+           JSONB_BUILD_OBJECT(
+             'id',         cr.id,
+             'name',       cr.name,
+             'code',       cr.code,
+             'num_code',   cr.num_code,
+             'symbol',     cr.symbol,
+             'created_at', cr.created_at,
+             'updated_at', cr.updated_at
+           )
+         ) FILTER (WHERE cr.id IS NOT NULL), '[]'
+       ) AS currencies
+  FROM country cn
+  LEFT JOIN country_currency cc ON cn.id = cc.country_id
+  LEFT JOIN currency cr ON cc.currency_id = cr.id
+ GROUP BY cn.id, cn.name
+ ORDER BY $1::text
+ LIMIT  $3 OFFSET $2
 `
 
-// CountrySelectByID
-//
-//	select id, name, iso2, iso3, num_code, created_at, updated_at from country c where c.id = $1
-func (q *Queries) CountrySelectByID(ctx context.Context, id string) (*Country, error) {
-	row := q.db.QueryRow(ctx, countrySelectByID, id)
-	var i Country
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Iso2,
-		&i.Iso3,
-		&i.NumCode,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return &i, err
+type ListCountriesWithCurrenciesParams struct {
+	SqlOrder  string `json:"sql_order"`
+	SqlOffset int32  `json:"sql_offset"`
+	SqlLimit  int32  `json:"sql_limit"`
 }
 
-const countryUpdateByID = `-- name: CountryUpdateByID :one
-update country
-   set name = $1, iso2 = $2, iso3 = $3, num_code = $4
- where id = $5
-       returning id, name, iso2, iso3, num_code, created_at, updated_at
+type ListCountriesWithCurrenciesRow struct {
+	ID         string           `json:"id"`
+	Name       string           `json:"name"`
+	Iso2       string           `json:"iso2"`
+	Iso3       string           `json:"iso3"`
+	NumCode    int16            `json:"num_code"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
+	UpdatedAt  pgtype.Timestamp `json:"updated_at"`
+	Currencies interface{}      `json:"currencies"`
+}
+
+// ListCountriesWithCurrencies
+//
+//	SELECT cn.id,
+//	       cn.name,
+//	       cn.iso2,
+//	       cn.iso3,
+//	       cn.num_code,
+//	       cn.created_at,
+//	       cn.updated_at,
+//	       COALESCE(
+//	         JSON_AGG(
+//	           JSONB_BUILD_OBJECT(
+//	             'id',         cr.id,
+//	             'name',       cr.name,
+//	             'code',       cr.code,
+//	             'num_code',   cr.num_code,
+//	             'symbol',     cr.symbol,
+//	             'created_at', cr.created_at,
+//	             'updated_at', cr.updated_at
+//	           )
+//	         ) FILTER (WHERE cr.id IS NOT NULL), '[]'
+//	       ) AS currencies
+//	  FROM country cn
+//	  LEFT JOIN country_currency cc ON cn.id = cc.country_id
+//	  LEFT JOIN currency cr ON cc.currency_id = cr.id
+//	 GROUP BY cn.id, cn.name
+//	 ORDER BY $1::text
+//	 LIMIT  $3 OFFSET $2
+func (q *Queries) ListCountriesWithCurrencies(ctx context.Context, arg *ListCountriesWithCurrenciesParams) ([]*ListCountriesWithCurrenciesRow, error) {
+	rows, err := q.db.Query(ctx, listCountriesWithCurrencies, arg.SqlOrder, arg.SqlOffset, arg.SqlLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*ListCountriesWithCurrenciesRow
+	for rows.Next() {
+		var i ListCountriesWithCurrenciesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Iso2,
+			&i.Iso3,
+			&i.NumCode,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Currencies,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateCountryByID = `-- name: UpdateCountryByID :one
+UPDATE country
+   SET name = $1,
+       iso2 = $2,
+       iso3 = $3,
+       num_code = $4
+ WHERE id = $5
+ RETURNING id, name, iso2, iso3, num_code, created_at, updated_at
 `
 
-type CountryUpdateByIDParams struct {
+type UpdateCountryByIDParams struct {
 	Name    string `json:"name"`
 	Iso2    string `json:"iso2"`
 	Iso3    string `json:"iso3"`
@@ -253,14 +280,17 @@ type CountryUpdateByIDParams struct {
 	ID      string `json:"id"`
 }
 
-// CountryUpdateByID
+// UpdateCountryByID
 //
-//	update country
-//	   set name = $1, iso2 = $2, iso3 = $3, num_code = $4
-//	 where id = $5
-//	       returning id, name, iso2, iso3, num_code, created_at, updated_at
-func (q *Queries) CountryUpdateByID(ctx context.Context, arg *CountryUpdateByIDParams) (*Country, error) {
-	row := q.db.QueryRow(ctx, countryUpdateByID,
+//	UPDATE country
+//	   SET name = $1,
+//	       iso2 = $2,
+//	       iso3 = $3,
+//	       num_code = $4
+//	 WHERE id = $5
+//	 RETURNING id, name, iso2, iso3, num_code, created_at, updated_at
+func (q *Queries) UpdateCountryByID(ctx context.Context, arg *UpdateCountryByIDParams) (*Country, error) {
+	row := q.db.QueryRow(ctx, updateCountryByID,
 		arg.Name,
 		arg.Iso2,
 		arg.Iso3,

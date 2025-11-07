@@ -1,48 +1,63 @@
--- name: CountryNew :one
-insert into country (
+-- name: CreateCountry :one
+INSERT INTO country (
 	name, iso2, iso3, num_code
-) values (
+) VALUES (
 	@name, @iso2, @iso3, @num_code
-) returning id, name, iso2, iso3, num_code, created_at, updated_at;
+)
+RETURNING id, name, iso2, iso3, num_code, created_at, updated_at;
 
--- name: CountryCount :one
-select count(*) from country;
+-- name: CountCountries :one
+SELECT count(*) FROM country;
 
--- name: CountrySelect :many
-select *
-  from country c
- order by @sql_order::text
- limit @sql_limit offset @sql_offset;
+-- name: ListCountries :many
+SELECT *
+  FROM country c
+ ORDER BY @sql_order::text
+ LIMIT @sql_limit OFFSET @sql_offset;
 
--- name: CountryCurrencySelect :many
-select cn.id, cn.name, cn.iso2, cn.iso3, cn.num_code, cn.created_at, cn.updated_at,
-  coalesce(
-    json_agg(
-      jsonb_build_object(
-        'id',         cr.id,
-        'name',       cr.name,
-        'code',       cr.code,
-        'num_code',   cr.num_code,
-        'symbol',     cr.symbol,
-        'created_at', cr.created_at,
-        'updated_at', cr.updated_at
-      )
-    ) filter (where cr.id is not null), '[]') as currencies
-  from country cn
-  left join country_currency cc on cn.id = cc.country_id
-  left join currency cr ON cc.currency_id = cr.id
- group by cn.id, cn.name
- order by @sql_order::text
- limit  @sql_limit offset @sql_offset;
+-- name: GetCountryByID :one
+SELECT *
+  FROM country c
+ WHERE c.id = @id;
 
--- name: CountrySelectByID :one
-select * from country c where c.id = @id;
+-- name: UpdateCountryByID :one
+UPDATE country
+   SET name = @name,
+       iso2 = @iso2,
+       iso3 = @iso3,
+       num_code = @num_code
+ WHERE id = @id
+ RETURNING id, name, iso2, iso3, num_code, created_at, updated_at;
 
--- name: CountryUpdateByID :one
-update country
-   set name = @name, iso2 = @iso2, iso3 = @iso3, num_code = @num_code
- where id = @id
-       returning id, name, iso2, iso3, num_code, created_at, updated_at;
+-- name: DeleteCountryByID :one
+DELETE FROM country c
+ WHERE c.id = @id
+ RETURNING id;
 
--- name: CountryDeleteByID :one
-delete from country c where c.id = @id returning id;
+-- name: ListCountriesWithCurrencies :many
+SELECT cn.id,
+       cn.name,
+       cn.iso2,
+       cn.iso3,
+       cn.num_code,
+       cn.created_at,
+       cn.updated_at,
+       COALESCE(
+         JSON_AGG(
+           JSONB_BUILD_OBJECT(
+             'id',         cr.id,
+             'name',       cr.name,
+             'code',       cr.code,
+             'num_code',   cr.num_code,
+             'symbol',     cr.symbol,
+             'created_at', cr.created_at,
+             'updated_at', cr.updated_at
+           )
+         ) FILTER (WHERE cr.id IS NOT NULL), '[]'
+       ) AS currencies
+  FROM country cn
+  LEFT JOIN country_currency cc ON cn.id = cc.country_id
+  LEFT JOIN currency cr ON cc.currency_id = cr.id
+ GROUP BY cn.id, cn.name
+ ORDER BY @sql_order::text
+ LIMIT  @sql_limit OFFSET @sql_offset;

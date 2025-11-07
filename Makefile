@@ -65,12 +65,8 @@ all:
 	@echo '  - app-prune   : Prune all in the local docker env'
 	@echo
 
-	@echo '>>> Entities template generator section'
-	@echo '  - gen-mapper     : Generate entity mapper layer'
-	@echo '  - gen-repository : Generate entity repository layer'
-	@echo '  - gen-service    : Generate entity service layer'
-	@echo '  - gen-controller : Generate entity controller layer'
-	@echo '  - gen-all        : Generate all layers for the entity'
+	@echo '>>> Entities ast generator section'
+	@echo '  - gen-crud    : Generate all layers for the entity'
 	@echo
 
 	@exit 0
@@ -131,48 +127,10 @@ dbs-version:
 
 .PHONY: dbs-gen dbs-up dbs-up1 dbs-down dbs-down1 dbs-drop dbs-version
 #
-# Entities template generator section
+# Entities ast generator section
 #
-BLUE := \033[0;34m
-GREEN := \033[0;32m
-RESET := \033[0m
+gen-crud:
+	go run scaffold/cmd/gen_crud.go ./storage/dbs $(sys)
 
-ENTITY ?= None
-MODULE_PATH ?= $(sys)
-ENTITY_LOWER := $(shell echo $(ENTITY) | tr '[:upper:]' '[:lower:]')
-#
-# Generic sed replace (cross-platform)
-#
-define SED_REPLACE
-	sed -i '' "s/{{.Entity}}/$(ENTITY)/g; s/{{.EntityLower}}/$(ENTITY_LOWER)/g; s|{{.ModulePath}}|$(MODULE_PATH)|g" $(1)
-endef
-#
-# Universal entity layer generator
-# Usage: $(call GEN_ENTITY_LAYER,<template_name>,<target_dir>)
-#
-define GEN_ENTITY_LAYER
-	@cp internal/template/$(1).tpl internal/$(2)/$(ENTITY_LOWER)_$(subst entity_,,$(1)).go
-	@$(call SED_REPLACE,internal/$(2)/$(ENTITY_LOWER)_$(subst entity_,,$(1)).go)
-	@echo "$(GREEN)[ok]$(RESET) $(subst entity_,,$(1)) for $(BLUE)$(ENTITY)$(RESET) created → internal/$(2)/$(ENTITY_LOWER)_$(subst entity_,,$(1)).go"
-endef
+.PHONY: gen-crud
 
-gen-mapper:
-	$(call GEN_ENTITY_LAYER,entity_mapper,mapper)
-
-gen-repository:
-	$(call GEN_ENTITY_LAYER,entity_repository,repository)
-
-gen-service:
-	$(call GEN_ENTITY_LAYER,entity_service,service)
-
-gen-controller:
-	$(call GEN_ENTITY_LAYER,entity_controller,controller)
-
-gen-all: gen-mapper gen-repository gen-service gen-controller
-	@echo "$(GREEN)[done]$(RESET) All layers scaffolded for entity $(BLUE)$(ENTITY)$(RESET)"
-
-.PHONY: gen-mapper gen-repository gen-service gen-controller gen-all
-
-#
-# eof
-#

@@ -3,26 +3,28 @@ package internal
 import (
 	"context"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"brickbang/internal/config"
-	"brickbang/internal/controller"
-	"brickbang/internal/repository"
-	"brickbang/internal/service"
+	"brickbang/internal/module"
+
 	"brickbang/storage/dbs"
 )
 
 // Container holds all dependencies of the application.
 // It provides access to shared resources such as database pool and controllers.
 type Container struct {
-	DBPool *pgxpool.Pool
+	DBPool    *pgxpool.Pool
+	Validator *validator.Validate
 
 	Metadata map[string]string
 
-	AuxController     controller.IAuxController
-	KeyController     controller.IKeyController
-	AuthController    controller.IAuthController
-	CountryController controller.ICountryController
+	// Modules (facades)
+	AuxModule     module.IAuxModule
+	KeyModule     module.IKeyModule
+	AuthModule    module.IAuthModule
+	CountryModule module.ICountryModule
 }
 
 // NewContainer initializes and wires up all application dependencies.
@@ -43,31 +45,23 @@ func NewContainer() *Container {
 	metadata := Metadata()
 	queries := dbs.New(dbPool)
 
-	// Repository layer: responsible for database access
-	auxRepo := repository.NewAuxRepository()
-	keyRepo := repository.NewKeyRepository(queries)
-	authRepo := repository.NewAuthRepository(queries)
-	countryRepo := repository.NewCountryRepository(queries)
+	// Validator (shared instance)
+	validator := validator.New()
 
-	// Service layer: contains business logic
-	auxService := service.NewAuxService(metadata, auxRepo)
-	keyService := service.NewKeyService(keyRepo)
-	authService := service.NewAuthService(authRepo, cfg.JWTSecret, cfg.JWTAccessExpiration)
-	countryService := service.NewCountryService(countryRepo)
-
-	// Controller layer: handles HTTP requests/responses
-	auxController := controller.NewAuxController(auxService)
-	keyController := controller.NewKeyController(keyService)
-	authController := controller.NewAuthController(authService)
-	countryController := controller.NewCountryController(countryService)
+	// Initialize modules
+	auxModule := module.NewAuxModule(ctx, queries, validator)
+	keyModule := module.NewKeyModule(ctx, queries, validator)
+	authModule := module.NewAuthModule(ctx, queries, validator)
+	countryModule := module.NewCountryModule(ctx, queries, validator)
 
 	// Return a fully initialized dependency container
 	return &Container{
-		DBPool:            dbPool,
-		Metadata:          metadata,
-		AuxController:     auxController,
-		KeyController:     keyController,
-		AuthController:    authController,
-		CountryController: countryController,
+		DBPool:        dbPool,
+		Metadata:      metadata,
+		Validator:     validator,
+		AuxModule:     auxModule,
+		KeyModule:     keyModule,
+		AuthModule:    authModule,
+		CountryModule: countryModule,
 	}
 }

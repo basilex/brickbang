@@ -1,64 +1,65 @@
 package service
 
 import (
-	"context"
+    "context"
 
-	"brickbang/internal/repository"
-	"brickbang/storage/dbs"
+    "brickbang/storage/dbs"
 )
 
+// Интерфейс по конвенции I...
 type ICountryService interface {
-	GetAll(ctx context.Context, order string, offset, limit int32) ([]*dbs.Country, error)
-	GetAllWithCurrencies(ctx context.Context, order string, offset, limit int32) ([]*dbs.CountryCurrencySelectRow, error)
-	GetByID(ctx context.Context, id string) (*dbs.Country, error)
-	Create(ctx context.Context, dto *dbs.CountryNewParams) (*dbs.Country, error)
-	Update(ctx context.Context, dto *dbs.CountryUpdateByIDParams) (*dbs.Country, error)
-	Delete(ctx context.Context, id string) (string, error)
-	Count(ctx context.Context) (int64, error)
+    Create(ctx context.Context, params dbs.CreateCountryParams) (*dbs.Country, error)
+    List(ctx context.Context, params dbs.ListCountriesWithCurrenciesParams) ([]*dbs.Country, error)
+    GetByID(ctx context.Context, id string) (*dbs.Country, error)
+    
+    UpdateByID(ctx context.Context, params dbs.UpdateCountryByIDParams) (*dbs.Country, error)
+    DeleteByID(ctx context.Context, id string) error
+    Count(ctx context.Context) (int64, error)
 }
 
-type countryService struct {
-	repo repository.ICountryRepository
+// Реализация сервиса
+type CountryService struct {
+    q *dbs.Queries
 }
 
-func NewCountryService(repo repository.ICountryRepository) ICountryService {
-	return &countryService{repo: repo}
+func NewCountryService(q *dbs.Queries) ICountryService {
+    return &CountryService{q: q}
 }
 
-func (s *countryService) GetAll(ctx context.Context, order string, offset, limit int32) ([]*dbs.Country, error) {
-	params := &dbs.CountrySelectParams{
-		SqlOrder:  order,
-		SqlOffset: offset,
-		SqlLimit:  limit,
-	}
-	return s.repo.Select(ctx, params)
+
+func (s *CountryService) Create(ctx context.Context, params dbs.CreateCountryParams) (*dbs.Country, error) {
+    return s.q.CreateCountry(ctx, params)
 }
 
-func (s *countryService) GetAllWithCurrencies(ctx context.Context, order string, offset, limit int32) ([]*dbs.CountryCurrencySelectRow, error) {
-	params := &dbs.CountryCurrencySelectParams{
-		SqlOrder:  order,
-		SqlOffset: offset,
-		SqlLimit:  limit,
-	}
-	return s.repo.SelectWithCurrencies(ctx, params)
+
+
+func (s *CountryService) List(ctx context.Context, params dbs.ListCountriesWithCurrenciesParams) ([]*dbs.Country, error) {
+    return s.q.ListCountrys(ctx, params)
 }
 
-func (s *countryService) GetByID(ctx context.Context, id string) (*dbs.Country, error) {
-	return s.repo.SelectByID(ctx, id)
+
+
+func (s *CountryService) GetByID(ctx context.Context, id string) (*dbs.Country, error) {
+    return s.q.GetCountryByID(ctx, id)
 }
 
-func (s *countryService) Create(ctx context.Context, dto *dbs.CountryNewParams) (*dbs.Country, error) {
-	return s.repo.Create(ctx, dto)
+
+
+
+
+func (s *CountryService) UpdateByID(ctx context.Context, params dbs.UpdateCountryByIDParams) (*dbs.Country, error) {
+    return s.q.UpdateCountryByID(ctx, params)
 }
 
-func (s *countryService) Update(ctx context.Context, dto *dbs.CountryUpdateByIDParams) (*dbs.Country, error) {
-	return s.repo.Update(ctx, dto)
+
+
+func (s *CountryService) DeleteByID(ctx context.Context, id string) error {
+    return s.q.DeleteCountryByID(ctx, id)
 }
 
-func (s *countryService) Delete(ctx context.Context, id string) (string, error) {
-	return s.repo.Delete(ctx, id)
+
+
+func (s *CountryService) Count(ctx context.Context) (int64, error) {
+    return s.q.CountCountry(ctx)
 }
 
-func (s *countryService) Count(ctx context.Context) (int64, error) {
-	return s.repo.Count(ctx)
-}

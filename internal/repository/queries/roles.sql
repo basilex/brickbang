@@ -1,24 +1,26 @@
--- name: CreateRole :one
+-- name: RoleCreate :one
 insert into roles(name) values(@name) returning *;
 
--- name: CountRoles :one
+-- name: RolesCount :one
 select count(*) from roles;
 
--- name: ListRoles :many
+-- name: RolesList :many
 select *
-  from roles r
- order by @sql_order::text
- limit @sql_limit offset @sql_offset;
+from roles r
+order by @sql_order::text
+limit @sql_limit offset @sql_offset;
 
--- name: GetRoleByID :one
+-- name: RoleGetByID :one
 select * from roles r where r.id = @id;
 
--- name: GetRoleByName :one
+-- name: RoleGetByName :one
 select * from roles r where r.name = @name;
 
--- name: UpdateRoleByID :one
+-- name: RoleUpdateByID :one
 update roles
-   set name = @name where id = @id returning *;
+set name = @name
+where id = @id
+returning *;
 
--- name: DeleteRoleByID :one
+-- name: RoleDeleteByID :one
 delete from roles where id = @id returning id;

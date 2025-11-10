@@ -6,15 +6,12 @@ import (
 	"brickbang/internal/repository/dbs"
 )
 
-// DTOs
 type RoleCreateRequest struct {
 	Name string
 }
-
 type RoleUpdateRequest struct {
 	Name string
 }
-
 type RoleResponse struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
@@ -22,15 +19,14 @@ type RoleResponse struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// Mappers
 func RoleToCreateParams(req *RoleCreateRequest) *dbs.Role {
 	return &dbs.Role{
 		Name: req.Name,
 	}
 }
 
-func RoleToUpdateParams(id string, req *RoleUpdateRequest) *dbs.UpdateRoleByIDParams {
-	return &dbs.UpdateRoleByIDParams{
+func RoleToUpdateParams(id string, req *RoleUpdateRequest) *dbs.RoleUpdateByIDParams {
+	return &dbs.RoleUpdateByIDParams{
 		ID:   id,
 		Name: req.Name,
 	}

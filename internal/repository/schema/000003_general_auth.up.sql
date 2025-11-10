@@ -8,7 +8,7 @@ create table users (
 
     is_blocked      bool            not null default false,
     blocked_at      timestamp       not null default '1000-01-01'::timestamp,
- 
+
     is_checked      bool            not null default false,
     checked_at      timestamp       not null default '1000-01-01'::timestamp,
 
@@ -24,7 +24,7 @@ create trigger users_updated_at
 insert into users(username, password, is_checked) values
     ('sys', crypt('passw!rd', gen_salt('bf', 12)), true),
     ('admin', crypt('passw0rd', gen_salt('bf', 12)), true),
-    ('alexander.vasilenko@gmail.com', crypt('passw-rd', gen_salt('bf', 12)), true);
+    ('alexander.vasilenko@gmail.com', crypt('passw0rd', gen_salt('bf', 12)), true);
 --
 -- Entity roles
 --
@@ -48,6 +48,42 @@ insert into roles(name) values
     ('REPORTER'),
     ('FINANCIER');
 --
+-- Entity user_roles
+--
+create table user_roles (
+    id              varchar(32)     not null default xid() primary key,
+    user_id         varchar(32)     not null references users(id) on delete cascade,
+    role_id         varchar(32)     not null references roles(id) on delete cascade
+);
+
+create unique index user_roles_pair_unq on user_roles(user_id, role_id);
+--
+-- Entity session
+--
+create table session (
+    id              varchar(32)     not null default xid() primary key,
+    user_id         varchar(32)     not null references users(id) on delete cascade,
+
+    access_token    varchar(1024)   not null,
+    refresh_token   varchar(1024)   not null,
+
+    access_exp      timestamp       not null,
+    refresh_exp     timestamp       not null,
+
+    access_status   varchar(32)     not null default 'valid' check(access_status in ('valid','expired','revoked')),
+    refresh_status  varchar(32)     not null default 'valid' check(refresh_status in ('valid','expired','revoked')),
+
+    ip_address      varchar(64)     not null default '-',
+    user_agent      varchar(512)    not null default '-',
+
+    created_at      timestamp       not null default timezone('utc', now()),
+    updated_at      timestamp       not null default '1000-01-01'::timestamp
+);
+
+create trigger session_updated_at
+    before update on session for each row
+    execute procedure trigger_updated_at();
+--
 -- Entity profile
 --
 create table profile (
@@ -57,7 +93,7 @@ create table profile (
     lastname        varchar(255)    not null,
     gender          varchar(32)     not null default 'unknown' check(gender in('unknown', 'male', 'female')),
     birthday        date            not null default '1000-01-01'::date,
-    avatar_url      varchar(255)    not null default '/assets/images/person.jpg',    
+    avatar_url      varchar(255)    not null default '/assets/images/person.jpg',
     enable_2fa      bool            not null default false,
     secret_2fa      varchar(255),
     created_at      timestamp       not null default timezone('utc', now()),
@@ -132,42 +168,3 @@ begin
     insert into contact(user_id, class, content) values(v_user_id, 'mobile', '+380952066922');
     insert into contact(user_id, class, content) values(v_user_id, 'telegram', '@Basilex');
 end $$;
---
--- Entity apikey
---
-create table apikey (
-    id          varchar(32)   not null default xid() primary key,
-    user_id     varchar(32)   not null references users(id) on delete cascade,
-    key_hash    varchar(255)  not null unique,
-    is_active   bool          not null default true,
-    name        varchar(255)  not null, -- human-readable label
-    lastuse_at  timestamp     not null default '1000-01-01'::timestamp,
-    created_at  timestamp     not null default timezone('utc', now())
-);
-
-create index apikey_user_id_idx on apikey(user_id);
-
-create trigger apikey_updated_at
-    before update on apikey for each row
-    execute procedure trigger_updated_at();
---
--- *** VIEWS LAYER
---
--- View v_user_profile
---
-create or replace view v_user_profile as
-    select u.id         as user_id,
-           p.id         as profile_id,
-           u.username   as user_username,
-           u.is_blocked as user_is_blocked,
-           u.is_checked as user_is_checked,
-           p.firstname  as profile_firstname,
-           p.lastname   as profile_lastname,
-           p.gender     as profile_gender,
-           p.birthday   as profile_birthday,
-           p.avatar_url as profile_avatar_url,
-           p.enable_2fa as profile_enable_2fa,
-           p.secret_2fa as profile_secret_2fa
-      from users u
-      left join profile p on p.user_id = u.id;
-

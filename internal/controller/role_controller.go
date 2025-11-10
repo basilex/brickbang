@@ -46,11 +46,13 @@ func (c *RoleController) List(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	resp := mapper.RoleToResponseList(list)
-	count, _ := c.svc.Count(ctx.Context())
+	count, err := c.svc.Count(ctx.Context())
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
 
 	return ctx.JSON(fiber.Map{
-		"data":  resp,
+		"data":  mapper.RoleToResponseList(list),
 		"count": count,
 	})
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 
+	"brickbang/internal/mapper"
 	"brickbang/internal/service"
 )
 
@@ -40,18 +41,16 @@ func (c *RoleController) List(ctx *fiber.Ctx) error {
 	offset, _ := strconv.Atoi(ctx.Query("offset", "0"))
 	order := ctx.Query("order", "id asc")
 
-	roles, err := c.svc.List(ctx.Context(), order, int32(limit), int32(offset))
+	list, err := c.svc.List(ctx.Context(), order, int32(limit), int32(offset))
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	count, err := c.svc.Count(ctx.Context())
-	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-	}
+	resp := mapper.RoleToResponseList(list)
+	count, _ := c.svc.Count(ctx.Context())
 
 	return ctx.JSON(fiber.Map{
-		"data":  roles,
+		"data":  resp,
 		"count": count,
 	})
 }
@@ -59,21 +58,23 @@ func (c *RoleController) List(ctx *fiber.Ctx) error {
 // GET /roles/:id
 func (c *RoleController) Get(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
+
 	role, err := c.svc.GetByID(ctx.Context(), id)
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
-	return ctx.JSON(role)
+
+	return ctx.JSON(mapper.RoleToResponse(role))
 }
 
 // POST /roles
 func (c *RoleController) Create(ctx *fiber.Ctx) error {
-	var req struct {
-		Name string `json:"name" validate:"required,min=2"`
-	}
+	var req mapper.RoleCreateRequest
+
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
+
 	if err := c.validator.Struct(req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -82,18 +83,19 @@ func (c *RoleController) Create(ctx *fiber.Ctx) error {
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	return ctx.Status(fiber.StatusCreated).JSON(role)
+
+	return ctx.Status(fiber.StatusCreated).JSON(mapper.RoleToResponse(role))
 }
 
 // PUT /roles/:id
 func (c *RoleController) Update(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	var req struct {
-		Name string `json:"name" validate:"required,min=2"`
-	}
+	var req mapper.RoleUpdateRequest
+
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
+
 	if err := c.validator.Struct(req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -102,15 +104,18 @@ func (c *RoleController) Update(ctx *fiber.Ctx) error {
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	return ctx.JSON(role)
+
+	return ctx.JSON(mapper.RoleToResponse(role))
 }
 
 // DELETE /roles/:id
 func (c *RoleController) Delete(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
+
 	_, err := c.svc.DeleteByID(ctx.Context(), id)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
+
 	return ctx.SendStatus(fiber.StatusNoContent)
 }

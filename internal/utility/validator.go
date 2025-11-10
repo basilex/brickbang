@@ -10,18 +10,14 @@ import (
 	"brickbang/internal/exception"
 )
 
-// Global validator instance
 var validate = validator.New()
 
 // ParseAndValidate parses JSON body and validates struct fields using `validate` tags.
 // It returns a structured Fiber error compatible with your UnifiedResponse middleware.
 func ParseAndValidate(ctx *fiber.Ctx, dest any) error {
-	// Parse incoming JSON
 	if err := ctx.BodyParser(dest); err != nil {
 		return exception.ErrBadRequest("invalid JSON body")
 	}
-
-	// Run validation rules
 	if err := validate.Struct(dest); err != nil {
 		if ve, ok := err.(validator.ValidationErrors); ok {
 			var messages []string
@@ -41,7 +37,6 @@ func ParseAndValidate(ctx *fiber.Ctx, dest any) error {
 					messages = append(messages, fmt.Sprintf("%s is invalid (%s)", field, fe.Tag()))
 				}
 			}
-
 			return exception.ErrUnprocessable(strings.Join(messages, "; "))
 		}
 

@@ -1,48 +1,54 @@
 package mapper
 
 import (
-    "brickbang/storage/dbs"
+	"time"
+
+	"brickbang/internal/repository/dbs"
 )
 
 // DTOs
 type RoleCreateRequest struct {
-    // TODO: заполнить реальные поля
+	Name string
 }
 
 type RoleUpdateRequest struct {
-    // TODO: заполнить реальные поля
+	Name string
 }
 
 type RoleResponse struct {
-    ID string `json:"id"`
-    // TODO: добавить остальные поля
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // Mappers
-func RoleToCreateParams(req *RoleCreateRequest) *dbs. {
-    return &dbs.{
-	// TODO: map fields
-    }
+func RoleToCreateParams(req *RoleCreateRequest) *dbs.Role {
+	return &dbs.Role{
+		Name: req.Name,
+	}
 }
 
 func RoleToUpdateParams(id string, req *RoleUpdateRequest) *dbs.UpdateRoleByIDParams {
-    return &dbs.UpdateRoleByIDParams{
-	ID: id,
-	// TODO: map fields
-    }
+	return &dbs.UpdateRoleByIDParams{
+		ID:   id,
+		Name: req.Name,
+	}
 }
 
-func RoleToResponse(row *dbs.) *RoleResponse {
-    return &RoleResponse{
-	ID: row.ID,
-	// TODO: map other fields
-    }
+func RoleToResponse(row *dbs.Role) *RoleResponse {
+	return &RoleResponse{
+		ID:        row.ID,
+		Name:      row.Name,
+		CreatedAt: row.CreatedAt.Time,
+		UpdatedAt: row.UpdatedAt.Time,
+	}
 }
 
-func RoleToResponseList(rows []*dbs.) []*RoleResponse {
-    list := make([]*RoleResponse, 0, len(rows))
-    for _, r := range rows {
-	list = append(list, RoleToResponse(r))
-    }
-    return list
+func RoleToResponseList(rows []*dbs.Role) []*RoleResponse {
+	list := make([]*RoleResponse, 0, len(rows))
+	for _, r := range rows {
+		list = append(list, RoleToResponse(r))
+	}
+	return list
 }

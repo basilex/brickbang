@@ -1,38 +1,32 @@
 package module
 
 import (
-	"brickbang/internal/repository"
-	"brickbang/internal/service"
+	"context"
+
 	"brickbang/internal/controller"
+	"brickbang/internal/repository/dbs"
+	"brickbang/internal/service"
 )
 
 // IRoleModule exposes the interfaces for the entity
 type IRoleModule interface {
-	Repository() repository.IRoleRepository
 	Service() service.IRoleService
 	Controller() controller.IRoleController
 }
 
-// RoleModuleImpl implements IRoleModule
-type RoleModuleImpl struct {
-	repo repository.IRoleRepository
+type RoleModule struct {
 	svc  service.IRoleService
 	ctrl controller.IRoleController
 }
 
-// NewRoleModule constructs the module
-func NewRoleModule(container *Container) IRoleModule {
-	repo := repository.NewRoleRepository(container.DBPool)
-	svc := service.NewRoleService(repo)
+func NewRoleModule(ctx context.Context, dbs *dbs.Queries) IRoleModule {
+	svc := service.NewRoleService(dbs)
 	ctrl := controller.NewRoleController(svc)
 
-	return &RoleModuleImpl{
-		repo:  repo,
-		svc:   svc,
-		ctrl:  ctrl,
+	return &RoleModule{
+		svc: svc, ctrl: ctrl,
 	}
 }
 
-func (m *RoleModuleImpl) Repository() repository.IRoleRepository { return m.repo }
-func (m *RoleModuleImpl) Service() service.IRoleService       { return m.svc }
-func (m *RoleModuleImpl) Controller() controller.IRoleController { return m.ctrl }
+func (m *RoleModule) Service() service.IRoleService          { return m.svc }
+func (m *RoleModule) Controller() controller.IRoleController { return m.ctrl }

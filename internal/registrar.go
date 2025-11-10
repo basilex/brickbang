@@ -59,21 +59,14 @@ func (rcv *Registrar) WithAdmin(prefix string) *Registrar {
 // RegisterAll registers all application routes
 func (rcv *Registrar) RegisterAll() *Registrar {
 	// Admin routes
-	rcv.WithAdmin("/keys").RegisterKeyRoutes()
+	// ...
 
 	// Public routes
 	rcv.WithPublic("/aux").RegisterAuxRoutes()
-	rcv.WithPublic("/auth").RegisterAuthRoutes()
 
 	// Private routes
-	rcv.WithPrivate("/countries").RegisterCountryRoutes()
+	rcv.WithPrivate("/roles").RegisterRolesRoutes()
 
-	return rcv
-}
-
-// RegisterKeyRoutes registers /api/v1/key routes
-func (rcv *Registrar) RegisterKeyRoutes() *Registrar {
-	rcv.container.KeyModule.Controller().Register(rcv.current)
 	return rcv
 }
 
@@ -83,15 +76,9 @@ func (rcv *Registrar) RegisterAuxRoutes() *Registrar {
 	return rcv
 }
 
-// RegisterAuthRoutes registers /api/v1/auth routes
-func (rcv *Registrar) RegisterAuthRoutes() *Registrar {
-	rcv.container.AuthModule.Controller().Register(rcv.current)
-	return rcv
-}
-
-// RegisterCountryRoutes registers /api/v1/countries routes
-func (rcv *Registrar) RegisterCountryRoutes() *Registrar {
-	rcv.container.CountryModule.Controller().Register(rcv.current)
+// RegisterRoleRoutes registers /api/v1/role routes
+func (rcv *Registrar) RegisterRolesRoutes() *Registrar {
+	rcv.container.RoleModule.Controller().Register(rcv.current)
 	return rcv
 }
 

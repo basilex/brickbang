@@ -65,10 +65,6 @@ all:
 	@echo '  - app-prune   : Prune all in the local docker env'
 	@echo
 
-	@echo '>>> Entities ast generator section'
-	@echo '  - gen-crud    : Generate all layers for the entity'
-	@echo
-
 	@exit 0
 
 .PHONY: all
@@ -111,26 +107,21 @@ app-prune:
 # Dbs section
 #
 dbs-gen:
-	@make -C storage gen
+	@make -C internal/repository gen
 dbs-up:
-	@make -C storage up
+	@make -C internal/repository up
 dbs-up1:
-	@make -C storage up1
+	@make -C internal/repository up1
 dbs-down:
-	@make -C storage down
+	@make -C internal/repository down
 dbs-down1:
-	@make -C storage down1
+	@make -C internal/repository down1
 dbs-drop:
-	@make -C storage drop
+	@make -C internal/repository drop
 dbs-version:
-	@make -C storage version
+	@make -C internal/repository version
 
 .PHONY: dbs-gen dbs-up dbs-up1 dbs-down dbs-down1 dbs-drop dbs-version
-#
-# Entities ast generator section
-#
-gen-crud:
-	go run scaffold/cmd/gen_crud.go ./storage/dbs $(sys)
 
 .PHONY: gen-crud
 

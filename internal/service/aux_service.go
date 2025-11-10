@@ -2,8 +2,6 @@ package service
 
 import (
 	"time"
-
-	"brickbang/internal/repository"
 )
 
 type IAuxService interface {
@@ -11,25 +9,28 @@ type IAuxService interface {
 	Uptime() map[string]string
 	Metadata() map[string]string
 }
-
-type auxService struct {
-	meta map[string]string
-	repo repository.IAuxRepository
+type AuxService struct {
+	metadata  map[string]string
+	startTime time.Time
 }
 
-func NewAuxService(meta map[string]string, repo repository.IAuxRepository) IAuxService {
-	return &auxService{meta: meta, repo: repo}
+func NewAuxService(meta map[string]string) IAuxService {
+	return &AuxService{
+		metadata:  meta,
+		startTime: time.Now(),
+	}
 }
 
-func (rcv *auxService) Health() map[string]string {
+func (rcv *AuxService) Health() map[string]string {
 	return map[string]string{"status": "ok"}
 }
 
-func (rcv *auxService) Uptime() map[string]string {
-	uptime := time.Since(rcv.repo.StartTime()).String()
-	return map[string]string{"uptime": uptime}
+func (rcv *AuxService) Uptime() map[string]string {
+	return map[string]string{
+		"uptime": time.Since(rcv.startTime).String(),
+	}
 }
 
-func (rcv *auxService) Metadata() map[string]string {
-	return rcv.meta
+func (rcv *AuxService) Metadata() map[string]string {
+	return rcv.metadata
 }

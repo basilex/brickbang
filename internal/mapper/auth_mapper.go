@@ -7,12 +7,6 @@ import (
 	"brickbang/internal/repository/dbs"
 )
 
-//
-// ======================
-// AUTH MAPPER
-// ======================
-//
-
 // MapUserToAuthUserResponse — маппинг SQLC-пользователя в DTO.
 func MapUserToAuthUserResponse(u *dbs.User) *model.AuthUserResponse {
 	return &model.AuthUserResponse{

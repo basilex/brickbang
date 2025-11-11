@@ -96,7 +96,7 @@ func (s *AuthService) Login(ctx context.Context, req *model.AuthLoginRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	refreshToken := utility.GenerateRandomString(32)
+	refreshToken, _ := utility.GenerateRandomString(32)
 
 	// 4. Создаем сессию в БД
 	session, err := s.q.AuthCreateSession(ctx, &dbs.AuthCreateSessionParams{
@@ -160,7 +160,7 @@ func (s *AuthService) Refresh(ctx context.Context, token string) (*model.AuthSes
 	}
 
 	// Генерируем новый access токен и новый срок действия
-	newAccess := utility.GenerateRandomString(32)
+	newAccess, _ := utility.GenerateRandomString(32)
 	newAccessExp := time.Now().UTC().Add(time.Hour)
 
 	// Обновляем access токен в БД

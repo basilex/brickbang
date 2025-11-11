@@ -25,7 +25,7 @@ type IAuthService interface {
 	Register(ctx context.Context, req *model.AuthRegisterRequest) (*model.AuthUserResponse, error)
 	Login(ctx context.Context, req *model.AuthLoginRequest) (*model.AuthLoginResponse, error)
 	Logout(ctx context.Context, sessionID string) error
-	Refresh(ctx context.Context, token string) (*model.AuthSessionResponse, error)
+	Refresh(ctx context.Context, userID, token string) (*model.AuthSessionResponse, error)
 	Me(ctx context.Context, userID string) (*model.AuthMeResponse, error)
 	Block(ctx context.Context, userID string, blocked bool) (*model.AuthUserResponse, error)
 }
@@ -94,10 +94,15 @@ func (s *AuthService) Login(ctx context.Context, req *model.AuthLoginRequest) (*
 		return nil, err
 	}
 
+	refreshTokenHash, err := bcrypt.GenerateFromPassword([]byte(refreshToken), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+
 	session, err := s.q.AuthCreateSession(ctx, &dbs.AuthCreateSessionParams{
 		UserID:       u.ID,
 		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		RefreshToken: string(refreshTokenHash),
 		AccessExp:    utility.ToPGTimestamp(accessExp),
 		RefreshExp:   utility.ToPGTimestamp(refreshExp),
 		IpAddress:    req.IpAddress,
@@ -136,20 +141,35 @@ func (s *AuthService) Logout(ctx context.Context, sessionID string) error {
 	return err
 }
 
-func (s *AuthService) Refresh(ctx context.Context, token string) (*model.AuthSessionResponse, error) {
-	sess, err := s.q.AuthSelectSessionByRefreshToken(ctx, token)
+func (s *AuthService) Refresh(ctx context.Context, userID, token string) (*model.AuthSessionResponse, error) {
+	sessions, err := s.q.AuthListSessionsByUserID(ctx, userID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrInvalidRefreshToken
-		}
 		return nil, err
 	}
 
-	if sess.RefreshStatus != "valid" || sess.RefreshExp.Time.Before(time.Now().UTC()) {
+	var sess *dbs.Session
+
+	found := false
+	for _, s := range sessions {
+		if s.RefreshStatus != "valid" {
+			continue
+		}
+		if err := bcrypt.CompareHashAndPassword([]byte(s.RefreshToken), []byte(token)); err == nil {
+			sess = s
+			found = true
+			break
+		}
+	}
+
+	if !found || sess == nil {
+		return nil, ErrInvalidRefreshToken
+	}
+
+	if sess.RefreshExp.Time.Before(time.Now().UTC()) {
 		return nil, ErrRefreshTokenExpired
 	}
 
-	newAccess, err := utility.GenerateAccessToken(sess.UserID, "", time.Hour)
+	newAccess, err := utility.GenerateAccessToken(sess.UserID, sess.ID, time.Hour)
 	if err != nil {
 		return nil, err
 	}

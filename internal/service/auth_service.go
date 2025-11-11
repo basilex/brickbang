@@ -8,6 +8,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"brickbang/internal/config"
 	"brickbang/internal/mapper"
 	"brickbang/internal/model"
 	"brickbang/internal/repository/dbs"
@@ -82,8 +83,8 @@ func (s *AuthService) Login(ctx context.Context, req *model.AuthLoginRequest) (*
 	}
 
 	now := time.Now().UTC()
-	accessExp := now.Add(time.Hour)
-	refreshExp := now.Add(7 * 24 * time.Hour)
+	accessExp := now.Add(config.Get().JWTAccessExpiration)
+	refreshExp := now.Add(config.Get().JWTRefreshExpiration)
 
 	// Генерация токенов
 	accessToken, err := utility.GenerateAccessToken(u.ID, "", time.Hour)

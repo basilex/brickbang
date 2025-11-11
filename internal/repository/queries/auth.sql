@@ -70,6 +70,11 @@ set refresh_status = 'revoked'
 where id = @id
 returning id, user_id, refresh_status;
 
+-- name: AuthRevokeSessionByID :one
+update session
+   set access_status = 'revoked', refresh_status = 'revoked'
+ where id = @id returning id, user_id, access_status, refresh_status;
+
 -- name: AuthExpireAccessTokenByID :one
 update session
 set access_status = 'expired'
@@ -81,6 +86,12 @@ update session
 set refresh_status = 'expired'
 where id = @id
 returning id, refresh_status;
+
+-- name: AuthExpireTokenByID :one
+update session
+   set access_status = 'expired', refresh_status = 'expired'
+ where id = @id
+returning id, access_status, refresh_status;
 
 -- name: AuthUpdateAccessTokenByID :one
 update session

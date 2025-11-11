@@ -48,12 +48,6 @@ func MapUserAndSessionsToMeResponse(u *dbs.User, sessions []*dbs.Session) *model
 	}
 }
 
-//
-// ======================
-// Helpers
-// ======================
-//
-
 // formatTimestamp — безопасное форматирование времени в ISO-8601.
 func formatTimestamp(t time.Time) string {
 	if t.IsZero() {

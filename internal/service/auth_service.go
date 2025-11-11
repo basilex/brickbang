@@ -1,16 +1,17 @@
 package service
 
 import (
-	"brickbang/internal/mapper"
-	"brickbang/internal/model"
-	"brickbang/internal/repository/dbs"
-	"brickbang/internal/utility"
 	"context"
 	"database/sql"
 	"errors"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
+
+	"brickbang/internal/mapper"
+	"brickbang/internal/model"
+	"brickbang/internal/repository/dbs"
+	"brickbang/internal/utility"
 )
 
 var (
@@ -25,7 +26,7 @@ type IAuthService interface {
 	Register(ctx context.Context, req *model.AuthRegisterRequest) (*model.AuthUserResponse, error)
 	Login(ctx context.Context, req *model.AuthLoginRequest) (*model.AuthLoginResponse, error)
 	Logout(ctx context.Context, sessionID string) error
-	Refresh(ctx context.Context, userID, token string) (*model.AuthSessionResponse, error)
+	Refresh(ctx context.Context, userID, refreshToken string) (*model.AuthSessionResponse, error)
 	Me(ctx context.Context, userID string) (*model.AuthMeResponse, error)
 	Block(ctx context.Context, userID string, blocked bool) (*model.AuthUserResponse, error)
 }
@@ -84,21 +85,23 @@ func (s *AuthService) Login(ctx context.Context, req *model.AuthLoginRequest) (*
 	accessExp := now.Add(time.Hour)
 	refreshExp := now.Add(7 * 24 * time.Hour)
 
+	// Генерация токенов
 	accessToken, err := utility.GenerateAccessToken(u.ID, "", time.Hour)
 	if err != nil {
 		return nil, err
 	}
 
-	refreshToken, err := utility.GenerateRandomString(32)
+	refreshTokenPlain, err := utility.GenerateRandomString(32)
 	if err != nil {
 		return nil, err
 	}
 
-	refreshTokenHash, err := bcrypt.GenerateFromPassword([]byte(refreshToken), bcrypt.DefaultCost)
+	refreshTokenHash, err := bcrypt.GenerateFromPassword([]byte(refreshTokenPlain), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
 	}
 
+	// Создание сессии
 	session, err := s.q.AuthCreateSession(ctx, &dbs.AuthCreateSessionParams{
 		UserID:       u.ID,
 		AccessToken:  accessToken,
@@ -112,6 +115,7 @@ func (s *AuthService) Login(ctx context.Context, req *model.AuthLoginRequest) (*
 		return nil, err
 	}
 
+	// Ответ клиенту — plaintext refresh токен возвращаем только один раз
 	resp := &model.AuthLoginResponse{
 		User: mapper.MapUserToAuthUserResponse(&dbs.User{
 			ID:        u.ID,
@@ -129,7 +133,7 @@ func (s *AuthService) Login(ctx context.Context, req *model.AuthLoginRequest) (*
 			RefreshStatus: session.RefreshStatus,
 			CreatedAt:     session.CreatedAt,
 			AccessToken:   session.AccessToken,
-			RefreshToken:  session.RefreshToken,
+			RefreshToken:  refreshTokenPlain, // <- оригинал
 		}),
 	}
 
@@ -137,31 +141,28 @@ func (s *AuthService) Login(ctx context.Context, req *model.AuthLoginRequest) (*
 }
 
 func (s *AuthService) Logout(ctx context.Context, sessionID string) error {
-	_, err := s.q.AuthRevokeAccessSessionByID(ctx, sessionID)
+	_, err := s.q.AuthRevokeSessionByID(ctx, sessionID)
 	return err
 }
 
-func (s *AuthService) Refresh(ctx context.Context, userID, token string) (*model.AuthSessionResponse, error) {
+func (s *AuthService) Refresh(ctx context.Context, userID, refreshToken string) (*model.AuthSessionResponse, error) {
 	sessions, err := s.q.AuthListSessionsByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	var sess *dbs.Session
-
-	found := false
-	for _, s := range sessions {
-		if s.RefreshStatus != "valid" {
+	for i := range sessions {
+		if sessions[i].RefreshStatus != "valid" {
 			continue
 		}
-		if err := bcrypt.CompareHashAndPassword([]byte(s.RefreshToken), []byte(token)); err == nil {
-			sess = s
-			found = true
+		if bcrypt.CompareHashAndPassword([]byte(sessions[i].RefreshToken), []byte(refreshToken)) == nil {
+			sess = sessions[i]
 			break
 		}
 	}
 
-	if !found || sess == nil {
+	if sess == nil {
 		return nil, ErrInvalidRefreshToken
 	}
 

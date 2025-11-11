@@ -246,6 +246,32 @@ func (q *Queries) AuthExpireRefreshTokenByID(ctx context.Context, id string) (*A
 	return &i, err
 }
 
+const authExpireTokenByID = `-- name: AuthExpireTokenByID :one
+update session
+   set access_status = 'expired', refresh_status = 'expired'
+ where id = $1
+returning id, access_status, refresh_status
+`
+
+type AuthExpireTokenByIDRow struct {
+	ID            string `json:"id"`
+	AccessStatus  string `json:"access_status"`
+	RefreshStatus string `json:"refresh_status"`
+}
+
+// AuthExpireTokenByID
+//
+//	update session
+//	   set access_status = 'expired', refresh_status = 'expired'
+//	 where id = $1
+//	returning id, access_status, refresh_status
+func (q *Queries) AuthExpireTokenByID(ctx context.Context, id string) (*AuthExpireTokenByIDRow, error) {
+	row := q.db.QueryRow(ctx, authExpireTokenByID, id)
+	var i AuthExpireTokenByIDRow
+	err := row.Scan(&i.ID, &i.AccessStatus, &i.RefreshStatus)
+	return &i, err
+}
+
 const authListSessionsByUserID = `-- name: AuthListSessionsByUserID :many
 select id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 from session
@@ -341,6 +367,36 @@ func (q *Queries) AuthRevokeRefreshSessionByID(ctx context.Context, id string) (
 	row := q.db.QueryRow(ctx, authRevokeRefreshSessionByID, id)
 	var i AuthRevokeRefreshSessionByIDRow
 	err := row.Scan(&i.ID, &i.UserID, &i.RefreshStatus)
+	return &i, err
+}
+
+const authRevokeSessionByID = `-- name: AuthRevokeSessionByID :one
+update session
+   set access_status = 'revoked', refresh_status = 'revoked'
+ where id = $1 returning id, user_id, access_status, refresh_status
+`
+
+type AuthRevokeSessionByIDRow struct {
+	ID            string `json:"id"`
+	UserID        string `json:"user_id"`
+	AccessStatus  string `json:"access_status"`
+	RefreshStatus string `json:"refresh_status"`
+}
+
+// AuthRevokeSessionByID
+//
+//	update session
+//	   set access_status = 'revoked', refresh_status = 'revoked'
+//	 where id = $1 returning id, user_id, access_status, refresh_status
+func (q *Queries) AuthRevokeSessionByID(ctx context.Context, id string) (*AuthRevokeSessionByIDRow, error) {
+	row := q.db.QueryRow(ctx, authRevokeSessionByID, id)
+	var i AuthRevokeSessionByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.AccessStatus,
+		&i.RefreshStatus,
+	)
 	return &i, err
 }
 

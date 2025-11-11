@@ -1,13 +1,5 @@
 package model
 
-//
-// ======================
-// AUTH MODELS (DTOs)
-// ======================
-//
-
-// ======== AUTH REQUESTS ========
-
 // AuthLoginRequest — вход по логину и паролю.
 type AuthLoginRequest struct {
 	Username  string `json:"username" validate:"required,min=3,max=64"`
@@ -73,10 +65,6 @@ type AuthTokenResponse struct {
 	TokenType    string `json:"token_type" default:"Bearer"`
 	ExpiresIn    int64  `json:"expires_in"`
 }
-
-//
-// ======== INTERNAL USE ========
-//
 
 // AuthClaims — структура для JWT claims (внутренняя).
 type AuthClaims struct {

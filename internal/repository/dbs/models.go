@@ -95,7 +95,8 @@ type User struct {
 }
 
 type UserRole struct {
-	ID     string `json:"id"`
-	UserID string `json:"user_id"`
-	RoleID string `json:"role_id"`
+	ID        string           `json:"id"`
+	UserID    string           `json:"user_id"`
+	RoleID    string           `json:"role_id"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
 }

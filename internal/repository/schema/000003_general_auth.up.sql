@@ -23,8 +23,8 @@ create trigger users_updated_at
 
 insert into users(username, password, is_checked) values
     ('sys', crypt('passw!rd', gen_salt('bf', 12)), true),
-    ('admin', crypt('passw0rd', gen_salt('bf', 12)), true),
-    ('alexander.vasilenko@gmail.com', crypt('passw0rd', gen_salt('bf', 12)), true);
+    ('admin', crypt('passw=rd', gen_salt('bf', 12)), true),
+    ('basilex', crypt('passw0rd', gen_salt('bf', 12)), true);
 --
 -- Entity roles
 --
@@ -53,10 +53,29 @@ insert into roles(name) values
 create table user_roles (
     id              varchar(32)     not null default xid() primary key,
     user_id         varchar(32)     not null references users(id) on delete cascade,
-    role_id         varchar(32)     not null references roles(id) on delete cascade
+    role_id         varchar(32)     not null references roles(id) on delete cascade,
+    created_at      timestamp       not null default timezone('utc', now())
 );
 
 create unique index user_roles_pair_unq on user_roles(user_id, role_id);
+
+do $$
+declare
+    v_user_id user_roles.user_id%type;
+    v_role_id user_roles.role_id%type;
+begin
+    select id into v_user_id from users where username = 'sys';
+    select id into v_role_id from roles where name = 'SYS';
+    insert into user_roles(user_id, role_id) values(v_user_id, v_role_id);
+
+    select id into v_user_id from users where username = 'admin';
+    select id into v_role_id from roles where name = 'ADMIN';
+    insert into user_roles(user_id, role_id) values(v_user_id, v_role_id);
+
+    select id into v_user_id from users where username = 'basilex';
+    select id into v_role_id from roles where name = 'ADMIN';
+    insert into user_roles(user_id, role_id) values(v_user_id, v_role_id);
+end $$;
 --
 -- Entity session
 --
@@ -114,7 +133,7 @@ begin
     select id into v_user_id from users where username = 'admin';
     insert into profile(user_id, firstname, lastname) values(v_user_id, 'System', 'Administrator');
 
-    select id into v_user_id from users where username = 'alexander.vasilenko@gmail.com';
+    select id into v_user_id from users where username = 'basilex';
     insert into profile(user_id, firstname, lastname, gender, birthday) values(v_user_id, 'Alexander', 'Vasilenko', 'male', '1965-04-03'::date);
 end $$;
 --
@@ -123,7 +142,7 @@ end $$;
 create table contact (
     id              varchar(32)     not null default xid() primary key,
     user_id         varchar(32)     not null references users(id) on delete cascade,
-    class           varchar(32)     not null check(class in ('email', 'phone', 'mobile', 'telegram', 'viber', 'signal')),
+    class           varchar(32)     not null check(class in ('email', 'phone', 'mobile', 'telegram', 'viber', 'signal', 'other')),
     content         varchar(255)    not null,
     created_at      timestamp       not null default timezone('utc', now()),
     updated_at      timestamp       not null default '1000-01-01'::timestamp
@@ -152,16 +171,16 @@ begin
     -- sys contacts
     --
     select id into v_user_id from users where username = 'sys';
-    insert into contact(user_id, class, content) values(v_user_id, 'email', 'sys@brickwall.com');
+    insert into contact(user_id, class, content) values(v_user_id, 'email', 'sys@brickbang.com');
     --
     -- admin contacts
     --
     select id into v_user_id from users where username = 'admin';
-    insert into contact(user_id, class, content) values(v_user_id, 'email', 'admin@brickwall.com');
+    insert into contact(user_id, class, content) values(v_user_id, 'email', 'admin@brickbang.com');
     --
-    -- alexander.vasilenko@gmail.com contacts
+    -- basilex contacts
     --
-    select id into v_user_id from users where username = 'alexander.vasilenko@gmail.com';
+    select id into v_user_id from users where username = 'basilex';
 
     insert into contact(user_id, class, content) values(v_user_id, 'email', 'alexander.vasilenko@gmail.com');
     insert into contact(user_id, class, content) values(v_user_id, 'email', 'alexander.vasilenko@icloud.com');

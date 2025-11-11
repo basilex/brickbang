@@ -81,9 +81,8 @@ func (q *Queries) RoleGetByName(ctx context.Context, name string) (*Role, error)
 
 const roleUpdateByID = `-- name: RoleUpdateByID :one
 update roles
-set name = $1
-where id = $2
-returning id, name, created_at, updated_at
+   set name = $1
+ where id = $2 returning id, name, created_at, updated_at
 `
 
 type RoleUpdateByIDParams struct {
@@ -94,9 +93,8 @@ type RoleUpdateByIDParams struct {
 // RoleUpdateByID
 //
 //	update roles
-//	set name = $1
-//	where id = $2
-//	returning id, name, created_at, updated_at
+//	   set name = $1
+//	 where id = $2 returning id, name, created_at, updated_at
 func (q *Queries) RoleUpdateByID(ctx context.Context, arg *RoleUpdateByIDParams) (*Role, error) {
 	row := q.db.QueryRow(ctx, roleUpdateByID, arg.Name, arg.ID)
 	var i Role
@@ -125,9 +123,9 @@ func (q *Queries) RolesCount(ctx context.Context) (int64, error) {
 
 const rolesList = `-- name: RolesList :many
 select id, name, created_at, updated_at
-from roles r
-order by $1::text
-limit $3 offset $2
+  from roles r
+ order by $1::text
+ limit $3 offset $2
 `
 
 type RolesListParams struct {
@@ -139,9 +137,9 @@ type RolesListParams struct {
 // RolesList
 //
 //	select id, name, created_at, updated_at
-//	from roles r
-//	order by $1::text
-//	limit $3 offset $2
+//	  from roles r
+//	 order by $1::text
+//	 limit $3 offset $2
 func (q *Queries) RolesList(ctx context.Context, arg *RolesListParams) ([]*Role, error) {
 	rows, err := q.db.Query(ctx, rolesList, arg.SqlOrder, arg.SqlOffset, arg.SqlLimit)
 	if err != nil {

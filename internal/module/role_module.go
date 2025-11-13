@@ -1,8 +1,6 @@
 package module
 
 import (
-	"context"
-
 	"brickbang/internal/controller"
 	"brickbang/internal/repository/dbs"
 	"brickbang/internal/service"
@@ -17,7 +15,7 @@ type roleModule struct {
 	ctrl controller.IRoleController
 }
 
-func NewRoleModule(ctx context.Context, dbs *dbs.Queries) IRoleModule {
+func NewRoleModule(dbs *dbs.Queries) IRoleModule {
 	svc := service.NewRoleService(dbs)
 	ctrl := controller.NewRoleController(svc)
 

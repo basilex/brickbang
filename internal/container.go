@@ -45,9 +45,9 @@ func NewContainer() *Container {
 	queries := dbs.New(dbPool)
 
 	// Initialize modules
-	auxModule := module.NewAuxModule(ctx, metadata)
-	authModule := module.NewAuthModule(ctx, queries)
-	roleModule := module.NewRoleModule(ctx, queries)
+	auxModule := module.NewAuxModule(metadata)
+	authModule := module.NewAuthModule(queries)
+	roleModule := module.NewRoleModule(queries)
 
 	// Return a fully initialized dependency container
 	return &Container{

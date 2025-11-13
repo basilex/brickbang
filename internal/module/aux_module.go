@@ -1,8 +1,6 @@
 package module
 
 import (
-	"context"
-
 	"brickbang/internal/controller"
 	"brickbang/internal/service"
 )
@@ -17,7 +15,7 @@ type auxModule struct {
 	ctrl controller.IAuxController
 }
 
-func NewAuxModule(ctx context.Context, meta map[string]string) IAuxModule {
+func NewAuxModule(meta map[string]string) IAuxModule {
 	svc := service.NewAuxService(meta)
 	ctrl := controller.NewAuxController(svc)
 

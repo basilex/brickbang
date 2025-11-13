@@ -1,8 +1,6 @@
 package module
 
 import (
-	"context"
-
 	"brickbang/internal/controller"
 	"brickbang/internal/repository/dbs"
 	"brickbang/internal/service"
@@ -18,7 +16,7 @@ type authModule struct {
 	ctrl controller.IAuthController
 }
 
-func NewAuthModule(ctx context.Context, queries *dbs.Queries) IAuthModule {
+func NewAuthModule(queries *dbs.Queries) IAuthModule {
 	svc := service.NewAuthService(queries)
 	ctrl := controller.NewAuthController(svc)
 

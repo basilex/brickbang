@@ -57,6 +57,7 @@ func InspectRoutes(app *fiber.App, useColors bool) {
 				handlerName = strings.TrimPrefix(handlerName, "fiber/v2.")
 			}
 		}
+
 		if handlerName == "" {
 			handlerName = "<anonymous>"
 		}

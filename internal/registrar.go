@@ -11,8 +11,8 @@ import (
 // Registrar manages the registration of application routes.
 // It supports a chain-style grouping and automatic controller registration.
 type Registrar struct {
-	app       *fiber.App
 	container *Container
+	app       *fiber.App
 	base      fiber.Router // base group /api/v1
 	current   fiber.Router // currently active group
 	path      string       // for logging
@@ -56,7 +56,6 @@ func (rcv *Registrar) WithAdmin(prefix string) *Registrar {
 	return rcv.WithGroup(prefix+"/admin", middleware.AuthMiddleware, middleware.RBACMiddleware)
 }
 
-// RegisterAll registers all application routes
 func (rcv *Registrar) RegisterAll() *Registrar {
 	// Admin routes
 	// ...
@@ -72,13 +71,11 @@ func (rcv *Registrar) RegisterAll() *Registrar {
 	return rcv
 }
 
-// RegisterAuxRoutes registers /api/v1/aux routes
 func (rcv *Registrar) registerAuxRoutes() *Registrar {
 	rcv.container.AuxModule.Controller().RegisterRoutes(rcv.current)
 	return rcv
 }
 
-// RegisterRoleRoutes registers /api/v1/role routes
 func (rcv *Registrar) registerRolesRoutes() *Registrar {
 	rcv.container.RoleModule.Controller().RegisterRoutes(rcv.current)
 	return rcv
@@ -94,7 +91,6 @@ func (rcv *Registrar) registerAuthPrivateRoutes() *Registrar {
 	return rcv
 }
 
-// Finalize completes the route registration process (for logging)
 func (rcv *Registrar) Finalize() {
 	// slog.Info("Routes registration completed", "base_path", rcv.path)
 }

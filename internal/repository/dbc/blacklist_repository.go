@@ -30,7 +30,7 @@ func (rcv *blacklistRepository) Add(ctx context.Context, jti string, ttl time.Du
 		return fmt.Errorf("jti cannot be empty")
 	}
 
-	return rcv.client.Set(ctx, "blacklist:"+jti, true, ttl).Err()
+	return rcv.client.Set(ctx, redisBlacklistKey+jti, true, ttl).Err()
 }
 
 func (rcv *blacklistRepository) Exists(ctx context.Context, jti string) (bool, error) {

@@ -2,6 +2,8 @@ package internal
 
 import (
 	"context"
+	"log/slog"
+	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -32,7 +34,8 @@ func NewContainer() *Container {
 	// Initialize PostgreSQL connection pool
 	dbPool, err := pgxpool.New(ctx, cfg.DatabaseDSN)
 	if err != nil {
-		panic(err)
+		slog.Error("Container", "failed to initialize database pool", err)
+		os.Exit(1)
 	}
 
 	// Initialize metadata
@@ -41,7 +44,7 @@ func NewContainer() *Container {
 	queries := dbs.New(dbPool)
 
 	// Initialize modules
-	auxModule := module.NewAuxModule(ctx, Metadata())
+	auxModule := module.NewAuxModule(ctx, metadata)
 	roleModule := module.NewRoleModule(ctx, queries)
 
 	// Return a fully initialized dependency container

@@ -32,21 +32,21 @@ type IAuthService interface {
 	Block(ctx context.Context, userID string, blocked bool) (*model.AuthUserResponse, error)
 }
 
-type AuthService struct {
-	q *dbs.Queries
+type authService struct {
+	queries *dbs.Queries
 }
 
 func NewAuthService(q *dbs.Queries) IAuthService {
-	return &AuthService{q: q}
+	return &authService{queries: q}
 }
 
-func (s *AuthService) Register(ctx context.Context, req *model.AuthRegisterRequest) (*model.AuthUserResponse, error) {
+func (rcv *authService) Register(ctx context.Context, req *model.AuthRegisterRequest) (*model.AuthUserResponse, error) {
 	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := s.q.AuthCreateUser(ctx, &dbs.AuthCreateUserParams{
+	user, err := rcv.queries.AuthCreateUser(ctx, &dbs.AuthCreateUserParams{
 		Username:  req.Username,
 		Password:  string(hashed),
 		IsChecked: true,
@@ -65,8 +65,8 @@ func (s *AuthService) Register(ctx context.Context, req *model.AuthRegisterReque
 	return mapper.MapUserToAuthUserResponse(u), nil
 }
 
-func (s *AuthService) Login(ctx context.Context, req *model.AuthLoginRequest) (*model.AuthLoginResponse, error) {
-	u, err := s.q.AuthSelectUserCredentials(ctx, req.Username)
+func (rcv *authService) Login(ctx context.Context, req *model.AuthLoginRequest) (*model.AuthLoginResponse, error) {
+	user, err := rcv.queries.AuthSelectUserCredentials(ctx, req.Username)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrInvalidCredentials
@@ -74,11 +74,11 @@ func (s *AuthService) Login(ctx context.Context, req *model.AuthLoginRequest) (*
 		return nil, err
 	}
 
-	if u.IsBlocked {
+	if user.IsBlocked {
 		return nil, ErrUserBlocked
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(req.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		return nil, ErrInvalidCredentials
 	}
 
@@ -87,7 +87,7 @@ func (s *AuthService) Login(ctx context.Context, req *model.AuthLoginRequest) (*
 	refreshExp := now.Add(config.Get().JWTRefreshExpiration)
 
 	// Генерация токенов
-	accessToken, err := utility.GenerateAccessToken(u.ID, "", time.Hour)
+	accessToken, err := utility.GenerateAccessToken(user.ID, "", time.Hour)
 	if err != nil {
 		return nil, err
 	}
@@ -102,9 +102,8 @@ func (s *AuthService) Login(ctx context.Context, req *model.AuthLoginRequest) (*
 		return nil, err
 	}
 
-	// Создание сессии
-	session, err := s.q.AuthCreateSession(ctx, &dbs.AuthCreateSessionParams{
-		UserID:       u.ID,
+	session, err := rcv.queries.AuthCreateSession(ctx, &dbs.AuthCreateSessionParams{
+		UserID:       user.ID,
 		AccessToken:  accessToken,
 		RefreshToken: string(refreshTokenHash),
 		AccessExp:    utility.ToPGTimestamp(accessExp),
@@ -116,13 +115,12 @@ func (s *AuthService) Login(ctx context.Context, req *model.AuthLoginRequest) (*
 		return nil, err
 	}
 
-	// Ответ клиенту — plaintext refresh токен возвращаем только один раз
 	resp := &model.AuthLoginResponse{
 		User: mapper.MapUserToAuthUserResponse(&dbs.User{
-			ID:        u.ID,
-			Username:  u.Username,
-			IsBlocked: u.IsBlocked,
-			IsChecked: u.IsChecked,
+			ID:        user.ID,
+			Username:  user.Username,
+			IsBlocked: user.IsBlocked,
+			IsChecked: user.IsChecked,
 		}),
 		Session: mapper.MapSessionToAuthSessionResponse(&dbs.Session{
 			ID:            session.ID,
@@ -141,22 +139,24 @@ func (s *AuthService) Login(ctx context.Context, req *model.AuthLoginRequest) (*
 	return resp, nil
 }
 
-func (s *AuthService) Logout(ctx context.Context, sessionID string) error {
-	_, err := s.q.AuthRevokeSessionByID(ctx, sessionID)
+func (rcv *authService) Logout(ctx context.Context, sessionID string) error {
+	_, err := rcv.queries.AuthRevokeSessionByID(ctx, sessionID)
 	return err
 }
 
-func (s *AuthService) Refresh(ctx context.Context, userID, refreshToken string) (*model.AuthSessionResponse, error) {
-	sessions, err := s.q.AuthListSessionsByUserID(ctx, userID)
+func (rcv *authService) Refresh(ctx context.Context, userID, refreshToken string) (*model.AuthSessionResponse, error) {
+	sessions, err := rcv.queries.AuthListSessionsByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	var sess *dbs.Session
+
 	for i := range sessions {
 		if sessions[i].RefreshStatus != "valid" {
 			continue
 		}
+
 		if bcrypt.CompareHashAndPassword([]byte(sessions[i].RefreshToken), []byte(refreshToken)) == nil {
 			sess = sessions[i]
 			break
@@ -175,9 +175,10 @@ func (s *AuthService) Refresh(ctx context.Context, userID, refreshToken string) 
 	if err != nil {
 		return nil, err
 	}
+
 	newAccessExp := time.Now().UTC().Add(time.Hour)
 
-	updated, err := s.q.AuthUpdateAccessTokenByID(ctx, &dbs.AuthUpdateAccessTokenByIDParams{
+	updated, err := rcv.queries.AuthUpdateAccessTokenByID(ctx, &dbs.AuthUpdateAccessTokenByIDParams{
 		ID:          sess.ID,
 		AccessToken: newAccess,
 		AccessExp:   utility.ToPGTimestamp(newAccessExp),
@@ -200,30 +201,31 @@ func (s *AuthService) Refresh(ctx context.Context, userID, refreshToken string) 
 	return resp, nil
 }
 
-func (s *AuthService) Me(ctx context.Context, userID string) (*model.AuthMeResponse, error) {
-	u, err := s.q.AuthSelectUserByID(ctx, userID)
+func (rcv *authService) Me(ctx context.Context, userID string) (*model.AuthMeResponse, error) {
+	user, err := rcv.queries.AuthSelectUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
+
 		return nil, err
 	}
 
-	sessions, err := s.q.AuthListSessionsByUserID(ctx, userID)
+	sessions, err := rcv.queries.AuthListSessionsByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	return mapper.MapUserAndSessionsToMeResponse(&dbs.User{
-		ID:        u.ID,
-		Username:  u.Username,
-		IsBlocked: u.IsBlocked,
-		IsChecked: u.IsChecked,
+		ID:        user.ID,
+		Username:  user.Username,
+		IsBlocked: user.IsBlocked,
+		IsChecked: user.IsChecked,
 	}, sessions), nil
 }
 
-func (s *AuthService) Block(ctx context.Context, userID string, blocked bool) (*model.AuthUserResponse, error) {
-	u, err := s.q.UserUpdateIsBlockedByID(ctx, &dbs.UserUpdateIsBlockedByIDParams{
+func (rcv *authService) Block(ctx context.Context, userID string, blocked bool) (*model.AuthUserResponse, error) {
+	user, err := rcv.queries.UserUpdateIsBlockedByID(ctx, &dbs.UserUpdateIsBlockedByIDParams{
 		ID:        userID,
 		IsBlocked: blocked,
 	})
@@ -232,9 +234,9 @@ func (s *AuthService) Block(ctx context.Context, userID string, blocked bool) (*
 	}
 
 	return mapper.MapUserToAuthUserResponse(&dbs.User{
-		ID:        u.ID,
-		Username:  u.Username,
-		IsBlocked: u.IsBlocked,
-		IsChecked: u.IsChecked,
+		ID:        user.ID,
+		Username:  user.Username,
+		IsBlocked: user.IsBlocked,
+		IsChecked: user.IsChecked,
 	}), nil
 }

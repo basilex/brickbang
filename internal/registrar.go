@@ -62,23 +62,35 @@ func (rcv *Registrar) RegisterAll() *Registrar {
 	// ...
 
 	// Public routes
-	rcv.WithPublic("/aux").RegisterAuxRoutes()
+	rcv.WithPublic("/aux").registerAuxRoutes()
+	rcv.WithPublic("/auth").registerAuthPublicRoutes()
 
 	// Private routes
-	rcv.WithPrivate("/roles").RegisterRolesRoutes()
+	rcv.WithPrivate("/auth").registerAuthPrivateRoutes()
+	rcv.WithPrivate("/roles").registerRolesRoutes()
 
 	return rcv
 }
 
 // RegisterAuxRoutes registers /api/v1/aux routes
-func (rcv *Registrar) RegisterAuxRoutes() *Registrar {
-	rcv.container.AuxModule.Controller().Register(rcv.current)
+func (rcv *Registrar) registerAuxRoutes() *Registrar {
+	rcv.container.AuxModule.Controller().RegisterRoutes(rcv.current)
 	return rcv
 }
 
 // RegisterRoleRoutes registers /api/v1/role routes
-func (rcv *Registrar) RegisterRolesRoutes() *Registrar {
-	rcv.container.RoleModule.Controller().Register(rcv.current)
+func (rcv *Registrar) registerRolesRoutes() *Registrar {
+	rcv.container.RoleModule.Controller().RegisterRoutes(rcv.current)
+	return rcv
+}
+
+func (rcv *Registrar) registerAuthPublicRoutes() *Registrar {
+	rcv.container.AuthModule.Controller().RegisterPublicRoutes(rcv.current)
+	return rcv
+}
+
+func (rcv *Registrar) registerAuthPrivateRoutes() *Registrar {
+	rcv.container.AuthModule.Controller().RegisterPrivateRoutes(rcv.current)
 	return rcv
 }
 

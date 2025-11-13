@@ -8,13 +8,11 @@ import (
 	"brickbang/internal/service"
 )
 
-// IRoleModule exposes the interfaces for the entity
 type IRoleModule interface {
 	Service() service.IRoleService
 	Controller() controller.IRoleController
 }
-
-type RoleModule struct {
+type roleModule struct {
 	svc  service.IRoleService
 	ctrl controller.IRoleController
 }
@@ -23,10 +21,10 @@ func NewRoleModule(ctx context.Context, dbs *dbs.Queries) IRoleModule {
 	svc := service.NewRoleService(dbs)
 	ctrl := controller.NewRoleController(svc)
 
-	return &RoleModule{
+	return &roleModule{
 		svc: svc, ctrl: ctrl,
 	}
 }
 
-func (m *RoleModule) Service() service.IRoleService          { return m.svc }
-func (m *RoleModule) Controller() controller.IRoleController { return m.ctrl }
+func (rcv *roleModule) Service() service.IRoleService          { return rcv.svc }
+func (rcv *roleModule) Controller() controller.IRoleController { return rcv.ctrl }

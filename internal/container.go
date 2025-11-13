@@ -21,6 +21,7 @@ type Container struct {
 
 	// Modules (facades)
 	AuxModule  module.IAuxModule
+	AuthModule module.IAuthModule
 	RoleModule module.IRoleModule
 }
 
@@ -45,6 +46,7 @@ func NewContainer() *Container {
 
 	// Initialize modules
 	auxModule := module.NewAuxModule(ctx, metadata)
+	authModule := module.NewAuthModule(ctx, queries)
 	roleModule := module.NewRoleModule(ctx, queries)
 
 	// Return a fully initialized dependency container
@@ -52,6 +54,7 @@ func NewContainer() *Container {
 		DBPool:     dbPool,
 		Metadata:   metadata,
 		AuxModule:  auxModule,
+		AuthModule: authModule,
 		RoleModule: roleModule,
 	}
 }

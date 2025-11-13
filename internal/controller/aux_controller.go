@@ -7,7 +7,7 @@ import (
 )
 
 type IAuxController interface {
-	Register(router fiber.Router)
+	RegisterRoutes(router fiber.Router)
 }
 type AuxController struct {
 	service service.IAuxService
@@ -17,7 +17,7 @@ func NewAuxController(service service.IAuxService) IAuxController {
 	return &AuxController{service: service}
 }
 
-func (rcv *AuxController) Register(router fiber.Router) {
+func (rcv *AuxController) RegisterRoutes(router fiber.Router) {
 	router.Get("/health", rcv.health)
 	router.Get("/uptime", rcv.uptime)
 	router.Get("/metadata", rcv.metadata)

@@ -1,14 +1,15 @@
 package service
 
 import (
+	"context"
 	"time"
 
 	"brickbang/internal/repository/dbc"
 )
 
 type IBlacklistService interface {
-	BlockToken(jti string, ttl time.Duration) error
-	IsBlocked(jti string) (bool, error)
+	BlockToken(ctx context.Context, jti string, ttl time.Duration) error
+	IsBlocked(ctx context.Context, jti string) (bool, error)
 }
 
 type blacklistService struct {
@@ -19,10 +20,10 @@ func NewBlacklistService(repo dbc.IBlacklistRepository) IBlacklistService {
 	return &blacklistService{repo: repo}
 }
 
-func (rcv *blacklistService) BlockToken(jti string, ttl time.Duration) error {
-	return rcv.repo.Add(jti, ttl)
+func (rcv *blacklistService) BlockToken(ctx context.Context, jti string, ttl time.Duration) error {
+	return rcv.repo.Add(ctx, jti, ttl)
 }
 
-func (rcv *blacklistService) IsBlocked(jti string) (bool, error) {
-	return rcv.repo.Exists(jti)
+func (rcv *blacklistService) IsBlocked(ctx context.Context, jti string) (bool, error) {
+	return rcv.repo.Exists(ctx, jti)
 }

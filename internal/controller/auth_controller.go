@@ -88,11 +88,7 @@ func (rcv *AuthController) Refresh(ctx *fiber.Ctx) error {
 func (rcv *AuthController) Me(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id")
 	if userID == nil {
-		id, ok := userID.(string)
-
-		if !ok || id == "" {
-			return utility.RespondWithError(ctx, fiber.StatusUnauthorized, fmt.Errorf("unauthorized"))
-		}
+		return utility.RespondWithError(ctx, fiber.StatusUnauthorized, fmt.Errorf("unauthorized"))
 	}
 
 	resp, err := rcv.svc.Me(ctx.Context(), userID.(string))

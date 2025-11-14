@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
@@ -21,8 +20,7 @@ type Container struct {
 	DBPool  *pgxpool.Pool
 	DBCache *redis.Client
 
-	Metadata  map[string]string
-	Validator *validator.Validate
+	Metadata map[string]string
 
 	// Modules (facades)
 	AuxModule  module.IAuxModule
@@ -56,20 +54,16 @@ func NewContainer() *Container {
 	metadata := Metadata()
 	queries := dbs.New(dbPool)
 
-	// Initialize global validator
-	validator := validator.New()
-
 	// Initialize modules
 	auxModule := module.NewAuxModule(metadata)
-	authModule := module.NewAuthModule(queries, validator)
-	roleModule := module.NewRoleModule(queries, validator)
+	authModule := module.NewAuthModule(queries)
+	roleModule := module.NewRoleModule(queries)
 
 	// Return a fully initialized dependency container
 	return &Container{
 		DBPool:     dbPool,
 		DBCache:    dbCache,
 		Metadata:   metadata,
-		Validator:  validator,
 		AuxModule:  auxModule,
 		AuthModule: authModule,
 		RoleModule: roleModule,

@@ -4,7 +4,6 @@ package controller
 import (
 	"fmt"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 
 	"brickbang/internal/model"
@@ -17,12 +16,11 @@ type IAuthController interface {
 	RegisterPrivateRoutes(router fiber.Router)
 }
 type AuthController struct {
-	svc       service.IAuthService
-	validator *validator.Validate
+	svc service.IAuthService
 }
 
-func NewAuthController(svc service.IAuthService, validator *validator.Validate) IAuthController {
-	return &AuthController{svc: svc, validator: validator}
+func NewAuthController(svc service.IAuthService) IAuthController {
+	return &AuthController{svc: svc}
 }
 
 func (c *AuthController) RegisterPublicRoutes(router fiber.Router) {
@@ -40,7 +38,7 @@ func (c *AuthController) RegisterPrivateRoutes(router fiber.Router) {
 func (rcv *AuthController) RegisterUser(ctx *fiber.Ctx) error {
 	var req model.AuthRegisterRequest
 
-	if err := utility.ValidateBody(ctx, &req, rcv.validator); err != nil {
+	if err := utility.ValidateBody(ctx, &req); err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusBadRequest, err)
 	}
 
@@ -55,7 +53,7 @@ func (rcv *AuthController) RegisterUser(ctx *fiber.Ctx) error {
 func (rcv *AuthController) Login(ctx *fiber.Ctx) error {
 	var req model.AuthLoginRequest
 
-	if err := utility.ValidateBody(ctx, &req, rcv.validator); err != nil {
+	if err := utility.ValidateBody(ctx, &req); err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusBadRequest, err)
 	}
 
@@ -73,7 +71,7 @@ func (rcv *AuthController) Login(ctx *fiber.Ctx) error {
 func (rcv *AuthController) Refresh(ctx *fiber.Ctx) error {
 	var req model.AuthRefreshRequest
 
-	if err := utility.ValidateBody(ctx, &req, rcv.validator); err != nil {
+	if err := utility.ValidateBody(ctx, &req); err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusBadRequest, err)
 	}
 
@@ -102,7 +100,7 @@ func (rcv *AuthController) Me(ctx *fiber.Ctx) error {
 func (rcv *AuthController) Logout(ctx *fiber.Ctx) error {
 	var req model.AuthLogoutRequest
 
-	if err := utility.ValidateBody(ctx, &req, rcv.validator); err != nil {
+	if err := utility.ValidateBody(ctx, &req); err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusBadRequest, err)
 	}
 
@@ -118,7 +116,7 @@ func (rcv *AuthController) Block(ctx *fiber.Ctx) error {
 	var req struct {
 		Blocked bool `json:"blocked" validate:"required"`
 	}
-	if err := utility.ValidateBody(ctx, &req, rcv.validator); err != nil {
+	if err := utility.ValidateBody(ctx, &req); err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusBadRequest, err)
 	}
 

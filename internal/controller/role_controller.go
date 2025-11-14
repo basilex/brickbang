@@ -2,7 +2,6 @@
 package controller
 
 import (
-	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 
 	"brickbang/internal/mapper"
@@ -14,15 +13,11 @@ type IRoleController interface {
 	RegisterRoutes(router fiber.Router)
 }
 type RoleController struct {
-	svc       service.IRoleService
-	validator *validator.Validate
+	svc service.IRoleService
 }
 
-func NewRoleController(svc service.IRoleService, validator *validator.Validate) IRoleController {
-	return &RoleController{
-		svc:       svc,
-		validator: validator,
-	}
+func NewRoleController(svc service.IRoleService) IRoleController {
+	return &RoleController{svc: svc}
 }
 
 func (rc *RoleController) RegisterRoutes(router fiber.Router) {
@@ -71,7 +66,7 @@ func (rc *RoleController) Get(ctx *fiber.Ctx) error {
 func (rc *RoleController) Create(ctx *fiber.Ctx) error {
 	var req mapper.RoleCreateRequest
 
-	if err := utility.ValidateBody(ctx, &req, rc.validator); err != nil {
+	if err := utility.ValidateBody(ctx, &req); err != nil {
 		return err // already a *fiber.Error
 	}
 
@@ -91,7 +86,7 @@ func (rc *RoleController) Update(ctx *fiber.Ctx) error {
 
 	var req mapper.RoleUpdateRequest
 
-	if err := utility.ValidateBody(ctx, &req, rc.validator); err != nil {
+	if err := utility.ValidateBody(ctx, &req); err != nil {
 		return err
 	}
 

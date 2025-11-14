@@ -8,12 +8,18 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func ValidateBody(ctx *fiber.Ctx, dst interface{}, v *validator.Validate) error {
+var validate *validator.Validate
+
+func init() {
+	validate = validator.New()
+}
+
+func ValidateBody(ctx *fiber.Ctx, dst any) error {
 	if err := ctx.BodyParser(dst); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "bad JSON: "+err.Error())
 	}
 
-	if err := v.Struct(dst); err != nil {
+	if err := validate.Struct(dst); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, formatValidationErrors(err))
 	}
 

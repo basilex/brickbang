@@ -4,8 +4,6 @@ import (
 	"brickbang/internal/controller"
 	"brickbang/internal/repository/dbs"
 	"brickbang/internal/service"
-
-	"github.com/go-playground/validator/v10"
 )
 
 type IAuthModule interface {
@@ -17,9 +15,9 @@ type authModule struct {
 	ctrl controller.IAuthController
 }
 
-func NewAuthModule(queries *dbs.Queries, validator *validator.Validate) IAuthModule {
+func NewAuthModule(queries *dbs.Queries) IAuthModule {
 	svc := service.NewAuthService(queries)
-	ctrl := controller.NewAuthController(svc, validator)
+	ctrl := controller.NewAuthController(svc)
 
 	return &authModule{
 		svc: svc, ctrl: ctrl,

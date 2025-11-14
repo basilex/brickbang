@@ -40,12 +40,12 @@ func (rc *RoleController) List(ctx *fiber.Ctx) error {
 
 	list, err := rc.svc.List(ctx.Context(), order, int32(limit), int32(offset))
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
 	count, err := rc.svc.Count(ctx.Context())
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
 	return ctx.JSON(fiber.Map{
@@ -62,7 +62,7 @@ func (rc *RoleController) Get(ctx *fiber.Ctx) error {
 
 	role, err := rc.svc.GetByID(ctx.Context(), id)
 	if err != nil {
-		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+		return utility.RespondWithError(ctx, fiber.StatusNotFound, err)
 	}
 
 	return ctx.JSON(mapper.RoleToResponse(role))
@@ -77,7 +77,7 @@ func (rc *RoleController) Create(ctx *fiber.Ctx) error {
 
 	role, err := rc.svc.Create(ctx.Context(), req.Name)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(mapper.RoleToResponse(role))
@@ -97,7 +97,7 @@ func (rc *RoleController) Update(ctx *fiber.Ctx) error {
 
 	role, err := rc.svc.UpdateByID(ctx.Context(), id, req.Name)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
 	return ctx.JSON(mapper.RoleToResponse(role))
@@ -111,7 +111,7 @@ func (rc *RoleController) Delete(ctx *fiber.Ctx) error {
 
 	_, err = rc.svc.DeleteByID(ctx.Context(), id)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
 	return ctx.SendStatus(fiber.StatusNoContent)

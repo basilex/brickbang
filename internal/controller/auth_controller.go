@@ -1,3 +1,4 @@
+// internal/controller/auth_controller.go
 package controller
 
 import (
@@ -6,23 +7,20 @@ import (
 
 	"brickbang/internal/model"
 	"brickbang/internal/service"
+	"brickbang/internal/utility"
 )
 
 type IAuthController interface {
 	RegisterPublicRoutes(router fiber.Router)
 	RegisterPrivateRoutes(router fiber.Router)
 }
-
 type AuthController struct {
 	svc       service.IAuthService
 	validator *validator.Validate
 }
 
 func NewAuthController(svc service.IAuthService, validator *validator.Validate) IAuthController {
-	return &AuthController{
-		svc:       svc,
-		validator: validator,
-	}
+	return &AuthController{svc: svc, validator: validator}
 }
 
 func (c *AuthController) RegisterPublicRoutes(router fiber.Router) {
@@ -37,117 +35,96 @@ func (c *AuthController) RegisterPrivateRoutes(router fiber.Router) {
 	router.Post("/block/:id", c.Block)
 }
 
-func (c *AuthController) RegisterUser(ctx *fiber.Ctx) error {
+func (rcv *AuthController) RegisterUser(ctx *fiber.Ctx) error {
 	var req model.AuthRegisterRequest
-	if err := ctx.BodyParser(&req); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+
+	if err := utility.ValidateBody(ctx, &req, rcv.validator); err != nil {
+		return utility.RespondWithError(ctx, fiber.StatusBadRequest, err)
 	}
 
-	if err := c.validator.Struct(req); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	resp, err := c.svc.Register(ctx.Context(), &req)
+	resp, err := rcv.svc.Register(ctx.Context(), &req)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(resp)
 }
 
-func (c *AuthController) Login(ctx *fiber.Ctx) error {
+func (rcv *AuthController) Login(ctx *fiber.Ctx) error {
 	var req model.AuthLoginRequest
 
-	if err := ctx.BodyParser(&req); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	if err := utility.ValidateBody(ctx, &req, rcv.validator); err != nil {
+		return utility.RespondWithError(ctx, fiber.StatusBadRequest, err)
 	}
 
 	req.IpAddress = ctx.IP()
 	req.UserAgent = ctx.Get("User-Agent")
 
-	resp, err := c.svc.Login(ctx.Context(), &req)
+	resp, err := rcv.svc.Login(ctx.Context(), &req)
 	if err != nil {
-		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
+		return utility.RespondWithError(ctx, fiber.StatusUnauthorized, err)
 	}
 
 	return ctx.JSON(resp)
 }
 
-func (c *AuthController) Logout(ctx *fiber.Ctx) error {
-	var req struct {
-		SessionID string `json:"session_id" validate:"required"`
+func (rcv *AuthController) Refresh(ctx *fiber.Ctx) error {
+	var req model.AuthRefreshRequest
+
+	if err := utility.ValidateBody(ctx, &req, rcv.validator); err != nil {
+		return utility.RespondWithError(ctx, fiber.StatusBadRequest, err)
 	}
 
-	if err := ctx.BodyParser(&req); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	resp, err := rcv.svc.Refresh(ctx.Context(), req.UserID, req.RefreshToken)
+	if err != nil {
+		return utility.RespondWithError(ctx, fiber.StatusUnauthorized, err)
 	}
 
-	if err := c.validator.Struct(req); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	return ctx.JSON(resp)
+}
+
+func (rcv *AuthController) Me(ctx *fiber.Ctx) error {
+	userID := ctx.Locals("user_id")
+	if userID == nil {
+		return utility.RespondWithError(
+			ctx, fiber.StatusUnauthorized,
+			fiber.NewError(fiber.StatusUnauthorized, "unauthorized"))
 	}
 
-	if err := c.svc.Logout(ctx.Context(), req.SessionID); err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	resp, err := rcv.svc.Me(ctx.Context(), userID.(string))
+	if err != nil {
+		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
+	return ctx.JSON(resp)
+}
+
+func (rcv *AuthController) Logout(ctx *fiber.Ctx) error {
+	var req model.AuthLogoutRequest
+
+	if err := utility.ValidateBody(ctx, &req, rcv.validator); err != nil {
+		return utility.RespondWithError(ctx, fiber.StatusBadRequest, err)
+	}
+
+	if err := rcv.svc.Logout(ctx.Context(), req.SessionID); err != nil {
+		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
+	}
 	return ctx.SendStatus(fiber.StatusNoContent)
 }
 
-func (c *AuthController) Refresh(ctx *fiber.Ctx) error {
-	var req struct {
-		UserID       string `json:"user_id" validate:"required"`
-		RefreshToken string `json:"refresh_token" validate:"required"`
-	}
-
-	if err := ctx.BodyParser(&req); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	if err := c.validator.Struct(req); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	resp, err := c.svc.Refresh(ctx.Context(), req.UserID, req.RefreshToken)
-	if err != nil {
-		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	return ctx.JSON(resp)
-}
-
-func (c *AuthController) Me(ctx *fiber.Ctx) error {
-	userID := ctx.Locals("user_id")
-	if userID == nil {
-		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
-	}
-
-	resp, err := c.svc.Me(ctx.Context(), userID.(string))
-	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	return ctx.JSON(resp)
-}
-
-func (c *AuthController) Block(ctx *fiber.Ctx) error {
+func (rcv *AuthController) Block(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
 	var req struct {
 		Blocked bool `json:"blocked" validate:"required"`
 	}
-
-	if err := ctx.BodyParser(&req); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	if err := utility.ValidateBody(ctx, &req, rcv.validator); err != nil {
+		return utility.RespondWithError(ctx, fiber.StatusBadRequest, err)
 	}
 
-	if err := c.validator.Struct(req); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	resp, err := c.svc.Block(ctx.Context(), id, req.Blocked)
+	resp, err := rcv.svc.Block(ctx.Context(), id, req.Blocked)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
-
 	return ctx.JSON(resp)
 }

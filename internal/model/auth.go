@@ -16,6 +16,7 @@ type AuthRegisterRequest struct {
 
 // AuthRefreshRequest — обновление пары токенов.
 type AuthRefreshRequest struct {
+	UserID       string `json:"user_id" validate:"required"`
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 

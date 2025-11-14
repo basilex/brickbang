@@ -62,7 +62,7 @@ func Init(env string) *Config {
 			slog.Warn("Failed to load .env file, fallback to system env", "file", envFile, "err", err)
 		}
 
-		cfg.RedisAddr = getEnv("REDIS_ADDR", "0.0.0.0:6379")
+		cfg.RedisAddr = getEnv("REDIS_ADDR", "127.0.0.1:6379")
 		cfg.RedisPassword = getEnv("REDIS_PASSWORD", "")
 		cfg.RedisDatabase = parseInt(getEnv("REDIS_DATABASE", "0"))
 

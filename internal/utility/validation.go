@@ -48,7 +48,7 @@ func formatValidationErrors(err error) string {
 		m := make(map[string]string)
 
 		for _, e := range errs {
-			m[e.Field()] = fmt.Sprintf("неверный формат: %s", e.Tag())
+			m[e.Field()] = fmt.Sprintf("bad format: %s", e.Tag())
 		}
 
 		return fmt.Sprint(m)

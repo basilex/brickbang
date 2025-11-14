@@ -37,17 +37,17 @@ func NewContainer() *Container {
 	cfg := config.Get()
 	ctx := context.Background()
 
-	// Initialize PostgreSQL connection pool
-	dbPool, err := pgxpool.New(ctx, cfg.DatabaseDSN)
-	if err != nil {
-		slog.Error("failed to initialize database pool", "component", "Container", "error", err)
-		os.Exit(1)
-	}
-
 	// Initialize Redis (cache) db connection
 	dbCache, err := client.NewRedisClient(ctx, cfg.RedisAddr, cfg.RedisPassword, cfg.RedisDatabase)
 	if err != nil {
 		slog.Error("failed to initialize redis connection", "component", "Container", "error", err)
+		os.Exit(1)
+	}
+
+	// Initialize PostgreSQL connection pool
+	dbPool, err := pgxpool.New(ctx, cfg.DatabaseDSN)
+	if err != nil {
+		slog.Error("failed to initialize database pool", "component", "Container", "error", err)
 		os.Exit(1)
 	}
 

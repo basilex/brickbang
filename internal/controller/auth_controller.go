@@ -57,6 +57,7 @@ func (c *AuthController) RegisterUser(ctx *fiber.Ctx) error {
 
 func (c *AuthController) Login(ctx *fiber.Ctx) error {
 	var req model.AuthLoginRequest
+
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}

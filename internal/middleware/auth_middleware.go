@@ -6,7 +6,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// Define public routes explicitly
 var publicRoutes = map[string][]string{
 	"/api/v1/aux":           {fiber.MethodGet},
 	"/api/v1/auth/login":    {fiber.MethodPost},
@@ -21,14 +20,5 @@ func AuthMiddleware(c *fiber.Ctx) error {
 		return c.Next()
 	}
 
-	// API key authentication
-	apiKey := c.Get("X-API-Key")
-	if apiKey == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "missing API key",
-		})
-	}
-
-	// TODO: validate apiKey here
 	return c.Next()
 }

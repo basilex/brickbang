@@ -35,7 +35,7 @@ func NewContainer() *Container {
 	// Initialize PostgreSQL connection pool
 	dbPool, err := pgxpool.New(ctx, cfg.DatabaseDSN)
 	if err != nil {
-		slog.Error("Container", "failed to initialize database pool", err)
+		slog.Error("failed to initialize database pool", "component", "Container", "error", err)
 		os.Exit(1)
 	}
 

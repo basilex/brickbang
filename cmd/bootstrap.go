@@ -118,7 +118,7 @@ func Run() {
 		slog.Info("Received shutdown signal, exiting gracefully...")
 
 		// Shutdown Fiber with timeout
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := app.ShutdownWithContext(shutdownCtx); err != nil {
 			slog.Error("Fiber shutdown error", "error", err)
@@ -132,6 +132,11 @@ func Run() {
 	case err := <-serverErr:
 		if err != nil {
 			slog.Error("Server stopped unexpectedly", "error", err)
+		}
+		// Cleanup resources on server error
+		if container.DBPool != nil {
+			container.DBPool.Close()
+			slog.Info("Database pool closed")
 		}
 	}
 	slog.Info("BrickBang server stopped")

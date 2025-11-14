@@ -2,6 +2,8 @@
 package controller
 
 import (
+	"fmt"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 
@@ -86,9 +88,11 @@ func (rcv *AuthController) Refresh(ctx *fiber.Ctx) error {
 func (rcv *AuthController) Me(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id")
 	if userID == nil {
-		return utility.RespondWithError(
-			ctx, fiber.StatusUnauthorized,
-			fiber.NewError(fiber.StatusUnauthorized, "unauthorized"))
+		id, ok := userID.(string)
+
+		if !ok || id == "" {
+			return utility.RespondWithError(ctx, fiber.StatusUnauthorized, fmt.Errorf("unauthorized"))
+		}
 	}
 
 	resp, err := rcv.svc.Me(ctx.Context(), userID.(string))

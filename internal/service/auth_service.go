@@ -86,7 +86,7 @@ func (rcv *authService) Login(ctx context.Context, req *model.AuthLoginRequest) 
 	accessExp := now.Add(config.Get().JWTAccessExpiration)
 	refreshExp := now.Add(config.Get().JWTRefreshExpiration)
 
-	// Генерация токенов
+	// TODO: parameters
 	accessToken, err := utility.GenerateAccessToken(user.ID, "", time.Hour)
 	if err != nil {
 		return nil, err

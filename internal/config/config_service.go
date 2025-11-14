@@ -17,6 +17,10 @@ type Config struct {
 
 	DatabaseDSN string
 
+	RedisAddr     string
+	RedisPassword string
+	RedisDatabase int
+
 	ServerAddress         string
 	ServerReadTimeout     time.Duration
 	ServerWriteTimeout    time.Duration
@@ -57,6 +61,11 @@ func Init(env string) *Config {
 		if err := godotenv.Load(envFile); err != nil {
 			slog.Warn("Failed to load .env file, fallback to system env", "file", envFile, "err", err)
 		}
+
+		cfg.RedisAddr = getEnv("REDIS_ADDR", "0.0.0.0:6379")
+		cfg.RedisPassword = getEnv("REDIS_PASSWORD", "")
+		cfg.RedisDatabase = parseInt(getEnv("REDIS_DATABASE", "0"))
+
 		cfg.DatabaseDSN = getEnv("DATABASE_DSN", "postgres://postgres:password@postgres:5432/brickbang_dev?sslmode=disable")
 
 		cfg.ServerAddress = getEnv("SERVER_ADDRESS", "0.0.0.0:8080")
@@ -82,6 +91,7 @@ func Init(env string) *Config {
 		cfg.JWTAccessExpiration = parseDuration(getEnv("JWT_ACCESS_EXPIRATION", "15m"))
 		cfg.JWTRefreshExpiration = parseDuration(getEnv("JWT_REFRESH_EXPIRATION", "24h"))
 	})
+
 	return cfg
 }
 

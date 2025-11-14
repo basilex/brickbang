@@ -4,6 +4,8 @@ import (
 	"brickbang/internal/controller"
 	"brickbang/internal/repository/dbs"
 	"brickbang/internal/service"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type IRoleModule interface {
@@ -15,9 +17,9 @@ type roleModule struct {
 	ctrl controller.IRoleController
 }
 
-func NewRoleModule(dbs *dbs.Queries) IRoleModule {
+func NewRoleModule(dbs *dbs.Queries, validator *validator.Validate) IRoleModule {
 	svc := service.NewRoleService(dbs)
-	ctrl := controller.NewRoleController(svc)
+	ctrl := controller.NewRoleController(svc, validator)
 
 	return &roleModule{
 		svc: svc, ctrl: ctrl,

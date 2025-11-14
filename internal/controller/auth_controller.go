@@ -18,10 +18,10 @@ type AuthController struct {
 	validator *validator.Validate
 }
 
-func NewAuthController(svc service.IAuthService) IAuthController {
+func NewAuthController(svc service.IAuthService, validator *validator.Validate) IAuthController {
 	return &AuthController{
 		svc:       svc,
-		validator: validator.New(),
+		validator: validator,
 	}
 }
 

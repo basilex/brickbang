@@ -19,10 +19,10 @@ type RoleController struct {
 	validator *validator.Validate
 }
 
-func NewRoleController(svc service.IRoleService) IRoleController {
+func NewRoleController(svc service.IRoleService, validator *validator.Validate) IRoleController {
 	return &RoleController{
 		svc:       svc,
-		validator: validator.New(),
+		validator: validator,
 	}
 }
 

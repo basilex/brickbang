@@ -1,4 +1,3 @@
-// brickbang/utility/validation.go
 package utility
 
 import (

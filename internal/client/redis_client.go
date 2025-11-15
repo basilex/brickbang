@@ -17,7 +17,7 @@ func (h LoggingHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
 		slog.Debug("Redis start", "cmd", cmd.String())
 		err := next(ctx, cmd)
-		slog.Debug("Redis done", "cmd", cmd.String(), "err:", err)
+		slog.Debug("Redis done", "cmd", cmd.String(), "err", err)
 		return err
 	}
 }
@@ -26,7 +26,7 @@ func (h LoggingHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.P
 	return func(ctx context.Context, cmds []redis.Cmder) error {
 		slog.Debug("Redis pipeline start", "cmds", cmds)
 		err := next(ctx, cmds)
-		slog.Debug("Redis pipeline done", "cmds", cmds, "err:", err)
+		slog.Debug("Redis pipeline done", "cmds", cmds, "err", err)
 		return err
 	}
 }
@@ -55,6 +55,7 @@ func NewRedisClient(ctx context.Context, cfg *config.Config) (*RedisClient, erro
 		WriteTimeout:    cfg.RedisWriteTimeout,
 		MinRetryBackoff: cfg.RedisMinRetryBackoff,
 		MaxRetryBackoff: cfg.RedisMaxRetryBackoff,
+		MaxRetries:      cfg.RedisReconnectAttempts,
 	})
 
 	client.AddHook(LoggingHook{})
@@ -62,7 +63,7 @@ func NewRedisClient(ctx context.Context, cfg *config.Config) (*RedisClient, erro
 	for i := 0; i < cfg.RedisReconnectAttempts; i++ {
 		if err := client.Ping(ctx).Err(); err != nil {
 			lastErr = err
-			slog.Warn("Redis ping failed, retrying...", "attempts", i+1, "/", cfg.RedisReconnectAttempts, "err", err)
+			slog.Warn("Redis ping failed, retrying...", "attempt", i+1, "max_attempts", cfg.RedisReconnectAttempts, "err", err)
 			time.Sleep(500 * time.Millisecond)
 			continue
 		}

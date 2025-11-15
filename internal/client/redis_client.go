@@ -55,15 +55,15 @@ func NewRedisClient(ctx context.Context, cfg *config.Config) (*RedisClient, erro
 		WriteTimeout:    cfg.RedisWriteTimeout,
 		MinRetryBackoff: cfg.RedisMinRetryBackoff,
 		MaxRetryBackoff: cfg.RedisMaxRetryBackoff,
-		MaxRetries:      cfg.RedisReconnectAttempts,
+		MaxRetries:      cfg.RedisMaxRetries,
 	})
 
 	client.AddHook(LoggingHook{})
 
-	for i := 0; i < cfg.RedisReconnectAttempts; i++ {
+	for i := 0; i < cfg.RedisMaxRetries; i++ {
 		if err := client.Ping(ctx).Err(); err != nil {
 			lastErr = err
-			slog.Warn("Redis ping failed, retrying...", "attempt", i+1, "max_attempts", cfg.RedisReconnectAttempts, "err", err)
+			slog.Warn("Redis ping failed, retrying...", "attempt", i+1, "max_retries", cfg.RedisMaxRetries, "err", err)
 			time.Sleep(500 * time.Millisecond)
 			continue
 		}
@@ -73,7 +73,7 @@ func NewRedisClient(ctx context.Context, cfg *config.Config) (*RedisClient, erro
 	}
 
 	if lastErr != nil {
-		return nil, fmt.Errorf("failed to connect to redis after %d attempts: %w", cfg.RedisReconnectAttempts, lastErr)
+		return nil, fmt.Errorf("failed to connect to redis after %d attempts: %w", cfg.RedisMaxRetries, lastErr)
 	}
 
 	// slog.Info("Redis connected:", "address", cfg.RedisAddr, "db", cfg.RedisDatabase)

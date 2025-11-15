@@ -17,15 +17,15 @@ type Config struct {
 
 	DatabaseDSN string
 
-	RedisAddr              string
-	RedisPassword          string
-	RedisDatabase          int
-	RedisDialTimeout       time.Duration
-	RedisReadTimeout       time.Duration
-	RedisWriteTimeout      time.Duration
-	RedisMinRetryBackoff   time.Duration
-	RedisMaxRetryBackoff   time.Duration
-	RedisReconnectAttempts int
+	RedisAddr            string
+	RedisPassword        string
+	RedisDatabase        int
+	RedisDialTimeout     time.Duration
+	RedisReadTimeout     time.Duration
+	RedisWriteTimeout    time.Duration
+	RedisMinRetryBackoff time.Duration
+	RedisMaxRetryBackoff time.Duration
+	RedisMaxRetries      int
 
 	ServerAddress         string
 	ServerReadTimeout     time.Duration
@@ -78,7 +78,7 @@ func Init(env string) *Config {
 		cfg.RedisWriteTimeout = parseDuration(getEnv("REDIS_WRITE_TIMEOUT", "3s"))
 		cfg.RedisMinRetryBackoff = parseDuration(getEnv("REDIS_MIN_RETRY_BACKOFF", "100ms"))
 		cfg.RedisMaxRetryBackoff = parseDuration(getEnv("REDIS_MAX_RETRY_BACKOFF", "2s"))
-		cfg.RedisReconnectAttempts = parseInt(getEnv("REDIS_RECONNECT_ATTEMPTS", "10"))
+		cfg.RedisMaxRetries = parseInt(getEnv("REDIS_MAX_RETRIES", "10"))
 
 		cfg.ServerAddress = getEnv("SERVER_ADDRESS", "0.0.0.0:8080")
 		cfg.ServerReadTimeout = parseDuration(getEnv("SERVER_READ_TIMEOUT", "3s"))

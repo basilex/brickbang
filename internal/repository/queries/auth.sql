@@ -46,6 +46,23 @@ returning
     id, user_id, access_token, refresh_token, access_exp, refresh_exp,
     access_status, refresh_status, ip_address, user_agent, created_at, updated_at;
 
+-- name: AuthSelectSessionByID :one
+SELECT
+    id,
+    user_id,
+    access_token,
+    refresh_token,
+    access_exp,
+    refresh_exp,
+    ip_address,
+    user_agent,
+    access_status,
+    refresh_status,
+    created_at
+FROM session
+WHERE id = $1
+LIMIT 1;
+
 -- name: AuthSelectSessionByAccessToken :one
 select *
 from session

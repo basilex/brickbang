@@ -18,11 +18,8 @@ import (
 	"brickbang/internal/utility"
 )
 
-// Timeouts are defined
-// for startup and shutdown processes timeouts
 const (
-	startupTimeout  = 500 * time.Millisecond
-	shutdownTimeout = 5 * time.Second
+	startupTimeout = 500 * time.Millisecond
 )
 
 // ServerPrefork sets GOMAXPROCS based on the configured child process count.
@@ -66,7 +63,13 @@ func Run() {
 
 	// Initialize dependencies and routes
 	container := internal.NewContainer()
-	internal.NewRegistrar(app, container).RegisterAll().Finalize()
+
+	// Initialize middleware with services
+	rbacMW := middleware.RBACMiddleware
+	authMW := middleware.NewAuthMiddleware(container.AuthModule.BlacklistService())
+
+	// Initialize Registrar with middleware
+	internal.NewRegistrar(app, container, authMW, rbacMW).RegisterAll().Finalize()
 
 	// Signal handling for graceful shutdown
 	ctx, stop := signal.NotifyContext(
@@ -85,9 +88,7 @@ func Run() {
 
 	// Master vs Child process logging
 	if fiber.IsChild() {
-		slog.Info(
-			"BrickBang child process started", "pid", os.Getpid(), "env", cfg.Env,
-		)
+		slog.Info("BrickBang child process started", "pid", os.Getpid(), "env", cfg.Env)
 	} else {
 		// Master process logs initial info
 		slog.Info("BrickBang server starting...")
@@ -123,21 +124,27 @@ func Run() {
 		if err := app.ShutdownWithContext(shutdownCtx); err != nil {
 			slog.Error("Fiber shutdown error", "error", err)
 		}
-
-		// Close DB pool if exists
-		if container.DBPool != nil {
-			container.DBPool.Close()
-			slog.Info("Database pool closed")
-		}
+		closeDatabases(container)
 	case err := <-serverErr:
 		if err != nil {
 			slog.Error("Server stopped unexpectedly", "error", err)
 		}
-		// Cleanup resources on server error
-		if container.DBPool != nil {
-			container.DBPool.Close()
-			slog.Info("Database pool closed")
-		}
+		closeDatabases(container)
 	}
 	slog.Info("BrickBang server stopped")
+}
+
+func closeDatabases(container *internal.Container) {
+	// Close Redis Cient if exists
+	if container.DBCache != nil {
+		container.DBCache.Close()
+		slog.Info("Redis connection closed")
+	}
+
+	// Close Postgres DB pool if exists
+	if container.DBPool != nil {
+		container.DBPool.Close()
+		slog.Info("Database pool closed")
+	}
+
 }

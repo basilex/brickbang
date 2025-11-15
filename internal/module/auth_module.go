@@ -7,27 +7,36 @@ import (
 )
 
 type IAuthModule interface {
-	Service() service.IAuthService
+	AuthService() service.IAuthService
+	BlacklistService() service.IBlacklistService
 	Controller() controller.IAuthController
 }
+
 type authModule struct {
-	svc  service.IAuthService
-	ctrl controller.IAuthController
+	authSvc      service.IAuthService
+	blacklistSvc service.IBlacklistService
+	ctrl         controller.IAuthController
 }
 
-func NewAuthModule(queries *dbs.Queries) IAuthModule {
-	svc := service.NewAuthService(queries)
-	ctrl := controller.NewAuthController(svc)
+func NewAuthModule(queries *dbs.Queries, blacklistSvc service.IBlacklistService) IAuthModule {
+	authSvc := service.NewAuthService(queries, blacklistSvc)
+	ctrl := controller.NewAuthController(authSvc)
 
 	return &authModule{
-		svc: svc, ctrl: ctrl,
+		authSvc:      authSvc,
+		blacklistSvc: blacklistSvc,
+		ctrl:         ctrl,
 	}
 }
 
-func (rcv *authModule) Service() service.IAuthService {
-	return rcv.svc
+func (m *authModule) AuthService() service.IAuthService {
+	return m.authSvc
 }
 
-func (rcv *authModule) Controller() controller.IAuthController {
-	return rcv.ctrl
+func (m *authModule) BlacklistService() service.IBlacklistService {
+	return m.blacklistSvc
+}
+
+func (m *authModule) Controller() controller.IAuthController {
+	return m.ctrl
 }

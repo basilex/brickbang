@@ -433,6 +433,74 @@ func (q *Queries) AuthSelectSessionByAccessToken(ctx context.Context, accessToke
 	return &i, err
 }
 
+const authSelectSessionByID = `-- name: AuthSelectSessionByID :one
+SELECT
+    id,
+    user_id,
+    access_token,
+    refresh_token,
+    access_exp,
+    refresh_exp,
+    ip_address,
+    user_agent,
+    access_status,
+    refresh_status,
+    created_at
+FROM session
+WHERE id = $1
+LIMIT 1
+`
+
+type AuthSelectSessionByIDRow struct {
+	ID            string           `json:"id"`
+	UserID        string           `json:"user_id"`
+	AccessToken   string           `json:"access_token"`
+	RefreshToken  string           `json:"refresh_token"`
+	AccessExp     pgtype.Timestamp `json:"access_exp"`
+	RefreshExp    pgtype.Timestamp `json:"refresh_exp"`
+	IpAddress     string           `json:"ip_address"`
+	UserAgent     string           `json:"user_agent"`
+	AccessStatus  string           `json:"access_status"`
+	RefreshStatus string           `json:"refresh_status"`
+	CreatedAt     pgtype.Timestamp `json:"created_at"`
+}
+
+// AuthSelectSessionByID
+//
+//	SELECT
+//	    id,
+//	    user_id,
+//	    access_token,
+//	    refresh_token,
+//	    access_exp,
+//	    refresh_exp,
+//	    ip_address,
+//	    user_agent,
+//	    access_status,
+//	    refresh_status,
+//	    created_at
+//	FROM session
+//	WHERE id = $1
+//	LIMIT 1
+func (q *Queries) AuthSelectSessionByID(ctx context.Context, id string) (*AuthSelectSessionByIDRow, error) {
+	row := q.db.QueryRow(ctx, authSelectSessionByID, id)
+	var i AuthSelectSessionByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.AccessToken,
+		&i.RefreshToken,
+		&i.AccessExp,
+		&i.RefreshExp,
+		&i.IpAddress,
+		&i.UserAgent,
+		&i.AccessStatus,
+		&i.RefreshStatus,
+		&i.CreatedAt,
+	)
+	return &i, err
+}
+
 const authSelectSessionByRefreshToken = `-- name: AuthSelectSessionByRefreshToken :one
 select id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 from session

@@ -6,60 +6,57 @@ import (
 	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v9"
 
 	"brickbang/internal/client"
 	"brickbang/internal/config"
 	"brickbang/internal/module"
+	"brickbang/internal/repository/dbc"
 	"brickbang/internal/repository/dbs"
+	"brickbang/internal/service"
 )
 
-// Container holds all dependencies of the application.
-// It provides access to shared resources such as database pool and controllers.
 type Container struct {
 	DBPool  *pgxpool.Pool
-	DBCache *redis.Client
+	DBCache *client.RedisClient
 
 	Metadata map[string]string
 
-	// Modules (facades)
+	// Modules
 	AuxModule  module.IAuxModule
 	AuthModule module.IAuthModule
 	RoleModule module.IRoleModule
 }
 
-// NewContainer initializes and wires up all application dependencies.
-// It follows the dependency injection pattern by creating instances in the correct order:
-// Config → Database → Repository → Service → Controller.
 func NewContainer() *Container {
 	cfg := config.Get()
 	ctx := context.Background()
 
-	// Initialize Redis (cache) db connection
-	dbCache, err := client.NewRedisClient(ctx, cfg.RedisAddr, cfg.RedisPassword, cfg.RedisDatabase)
+	// Redis
+	dbCache, err := client.NewRedisClient(ctx, cfg)
 	if err != nil {
-		slog.Error("failed to initialize redis connection", "component", "Container", "error", err)
+		slog.Error("failed to init redis", "error", err)
 		os.Exit(1)
 	}
 
-	// Initialize PostgreSQL connection pool
+	// Postgres
 	dbPool, err := pgxpool.New(ctx, cfg.DatabaseDSN)
 	if err != nil {
-		slog.Error("failed to initialize database pool", "component", "Container", "error", err)
+		slog.Error("failed to init postgres", "error", err)
 		os.Exit(1)
 	}
 
-	// Initialize metadata
-	// and generated SQL queries wrapper (from sqlc)
 	metadata := Metadata()
 	queries := dbs.New(dbPool)
 
-	// Initialize modules
+	// --- NEW: Blacklist Repository + Service ---
+	blacklistRepo := dbc.NewBlacklistRepository(dbCache.Client)
+	blacklistService := service.NewBlacklistService(blacklistRepo)
+
+	// Modules
 	auxModule := module.NewAuxModule(metadata)
-	authModule := module.NewAuthModule(queries)
+	authModule := module.NewAuthModule(queries, blacklistService)
 	roleModule := module.NewRoleModule(queries)
 
-	// Return a fully initialized dependency container
 	return &Container{
 		DBPool:     dbPool,
 		DBCache:    dbCache,

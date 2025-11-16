@@ -1,0 +1,16 @@
+@baseUrl = http://localhost:8081/api/v1/aux
+
+###
+
+GET {{baseUrl}}/health
+Content-Type: application/json
+
+###
+
+GET {{baseUrl}}/uptime
+Content-Type: application/json
+
+###
+
+GET {{baseUrl}}/metadata
+Content-Type: application/json

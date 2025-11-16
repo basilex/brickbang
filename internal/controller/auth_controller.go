@@ -6,8 +6,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"brickbang/internal/model"
 	"brickbang/internal/service"
+	"brickbang/internal/transfer"
 	"brickbang/internal/utility"
 )
 
@@ -36,7 +36,7 @@ func (c *AuthController) RegisterPrivateRoutes(router fiber.Router) {
 }
 
 func (rcv *AuthController) RegisterUser(ctx *fiber.Ctx) error {
-	var req model.AuthRegisterRequest
+	var req transfer.AuthRegisterRequest
 
 	if err := utility.ValidateBody(ctx, &req); err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusBadRequest, err)
@@ -51,7 +51,7 @@ func (rcv *AuthController) RegisterUser(ctx *fiber.Ctx) error {
 }
 
 func (rcv *AuthController) Login(ctx *fiber.Ctx) error {
-	var req model.AuthLoginRequest
+	var req transfer.AuthLoginRequest
 
 	if err := utility.ValidateBody(ctx, &req); err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusBadRequest, err)
@@ -69,7 +69,7 @@ func (rcv *AuthController) Login(ctx *fiber.Ctx) error {
 }
 
 func (rcv *AuthController) Refresh(ctx *fiber.Ctx) error {
-	var req model.AuthRefreshRequest
+	var req transfer.AuthRefreshRequest
 
 	if err := utility.ValidateBody(ctx, &req); err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusBadRequest, err)
@@ -98,7 +98,7 @@ func (rcv *AuthController) Me(ctx *fiber.Ctx) error {
 }
 
 func (rcv *AuthController) Logout(ctx *fiber.Ctx) error {
-	var req model.AuthLogoutRequest
+	var req transfer.AuthLogoutRequest
 
 	if err := utility.ValidateBody(ctx, &req); err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusBadRequest, err)

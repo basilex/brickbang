@@ -5,8 +5,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"brickbang/internal/model"
 	"brickbang/internal/service"
+	"brickbang/internal/transfer"
 	"brickbang/internal/utility"
 )
 
@@ -41,10 +41,10 @@ func (rc *RoleController) List(ctx *fiber.Ctx) error {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
-	resp := make([]*model.RoleResponse, len(roles))
+	resp := make([]*transfer.RoleResponse, len(roles))
 
 	for idx, role := range roles {
-		resp[idx] = &model.RoleResponse{
+		resp[idx] = &transfer.RoleResponse{
 			ID:        role.ID,
 			Name:      role.Name,
 			CreatedAt: utility.FromPGTimestampToString(role.CreatedAt),
@@ -67,7 +67,7 @@ func (rc *RoleController) Get(ctx *fiber.Ctx) error {
 		return utility.RespondWithError(ctx, fiber.StatusNotFound, errors.New("role not found"))
 	}
 
-	return ctx.JSON(&model.RoleResponse{
+	return ctx.JSON(&transfer.RoleResponse{
 		ID:        role.ID,
 		Name:      role.Name,
 		CreatedAt: utility.FromPGTimestampToString(role.CreatedAt),
@@ -77,7 +77,7 @@ func (rc *RoleController) Get(ctx *fiber.Ctx) error {
 
 // Create new role
 func (rc *RoleController) Create(ctx *fiber.Ctx) error {
-	var req model.RoleCreateRequest
+	var req transfer.RoleCreateRequest
 
 	if err := utility.ValidateBody(ctx, &req); err != nil {
 		return err
@@ -88,7 +88,7 @@ func (rc *RoleController) Create(ctx *fiber.Ctx) error {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(&model.RoleResponse{
+	return ctx.Status(fiber.StatusCreated).JSON(&transfer.RoleResponse{
 		ID:        role.ID,
 		Name:      role.Name,
 		CreatedAt: utility.FromPGTimestampToString(role.CreatedAt),
@@ -103,7 +103,7 @@ func (rc *RoleController) Update(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	var req model.RoleUpdateRequest
+	var req transfer.RoleUpdateRequest
 
 	if err := utility.ValidateBody(ctx, &req); err != nil {
 		return err
@@ -114,7 +114,7 @@ func (rc *RoleController) Update(ctx *fiber.Ctx) error {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
-	return ctx.JSON(&model.RoleResponse{
+	return ctx.JSON(&transfer.RoleResponse{
 		ID:        role.ID,
 		Name:      role.Name,
 		CreatedAt: utility.FromPGTimestampToString(role.CreatedAt),

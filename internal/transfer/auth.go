@@ -1,4 +1,4 @@
-package model
+package transfer
 
 // AuthRegisterRequest
 type AuthRegisterRequest struct {

@@ -13,8 +13,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"brickbang/internal/config"
-	"brickbang/internal/model"
 	"brickbang/internal/repository/dbs"
+	"brickbang/internal/transfer"
 	"brickbang/internal/utility"
 )
 
@@ -27,12 +27,12 @@ var (
 )
 
 type IAuthService interface {
-	Register(ctx context.Context, req *model.AuthRegisterRequest) (*model.AuthUserResponse, error)
-	Login(ctx context.Context, req *model.AuthLoginRequest) (*model.AuthLoginResponse, error)
+	Register(ctx context.Context, req *transfer.AuthRegisterRequest) (*transfer.AuthUserResponse, error)
+	Login(ctx context.Context, req *transfer.AuthLoginRequest) (*transfer.AuthLoginResponse, error)
 	Logout(ctx context.Context, sessionID string) error
-	Refresh(ctx context.Context, userID, refreshToken string) (*model.AuthLoginResponse, error)
-	Me(ctx context.Context, userID string) (*model.AuthMeResponse, error)
-	Block(ctx context.Context, userID string, blocked bool) (*model.AuthUserResponse, error)
+	Refresh(ctx context.Context, userID, refreshToken string) (*transfer.AuthLoginResponse, error)
+	Me(ctx context.Context, userID string) (*transfer.AuthMeResponse, error)
+	Block(ctx context.Context, userID string, blocked bool) (*transfer.AuthUserResponse, error)
 }
 
 type authService struct {
@@ -58,7 +58,7 @@ func (s *authService) blockAccessTokenByJTI(ctx context.Context, accessJTI strin
 }
 
 // --- Register
-func (s *authService) Register(ctx context.Context, req *model.AuthRegisterRequest) (*model.AuthUserResponse, error) {
+func (s *authService) Register(ctx context.Context, req *transfer.AuthRegisterRequest) (*transfer.AuthUserResponse, error) {
 	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func (s *authService) Register(ctx context.Context, req *model.AuthRegisterReque
 		return nil, err
 	}
 
-	return &model.AuthUserResponse{
+	return &transfer.AuthUserResponse{
 		ID:        user.ID,
 		Username:  user.Username,
 		IsBlocked: user.IsBlocked,
@@ -82,7 +82,7 @@ func (s *authService) Register(ctx context.Context, req *model.AuthRegisterReque
 }
 
 // --- Login
-func (s *authService) Login(ctx context.Context, req *model.AuthLoginRequest) (*model.AuthLoginResponse, error) {
+func (s *authService) Login(ctx context.Context, req *transfer.AuthLoginRequest) (*transfer.AuthLoginResponse, error) {
 	user, err := s.queries.GetUserByUsername(ctx, req.Username)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -146,14 +146,14 @@ func (s *authService) Login(ctx context.Context, req *model.AuthLoginRequest) (*
 		return nil, err
 	}
 
-	resp := &model.AuthLoginResponse{
-		User: &model.AuthUserResponse{
+	resp := &transfer.AuthLoginResponse{
+		User: &transfer.AuthUserResponse{
 			ID:        user.ID,
 			Username:  user.Username,
 			IsBlocked: user.IsBlocked,
 			IsChecked: user.IsChecked,
 		},
-		Session: &model.AuthSessionResponse{
+		Session: &transfer.AuthSessionResponse{
 			ID:            updatedSession.ID,
 			AccessJti:     updatedSession.AccessJti,
 			RefreshJti:    updatedSession.RefreshJti,
@@ -185,7 +185,7 @@ func (s *authService) Logout(ctx context.Context, sessionID string) error {
 }
 
 // --- Refresh
-func (s *authService) Refresh(ctx context.Context, userID, refreshToken string) (*model.AuthLoginResponse, error) {
+func (s *authService) Refresh(ctx context.Context, userID, refreshToken string) (*transfer.AuthLoginResponse, error) {
 	sessions, err := s.queries.ListSessionsByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -245,7 +245,7 @@ func (s *authService) Refresh(ctx context.Context, userID, refreshToken string) 
 		return ""
 	}
 
-	sessionResp := &model.AuthSessionResponse{
+	sessionResp := &transfer.AuthSessionResponse{
 		ID:            updatedSession.ID,
 		AccessJti:     updatedSession.AccessJti,
 		AccessExp:     formatTime(updatedSession.AccessExp),
@@ -259,8 +259,8 @@ func (s *authService) Refresh(ctx context.Context, userID, refreshToken string) 
 		UpdatedAt:     formatTime(updatedSession.UpdatedAt),
 	}
 
-	return &model.AuthLoginResponse{
-		User: &model.AuthUserResponse{
+	return &transfer.AuthLoginResponse{
+		User: &transfer.AuthUserResponse{
 			ID: sess.UserID,
 		},
 		Session:      sessionResp,
@@ -272,17 +272,17 @@ func (s *authService) Refresh(ctx context.Context, userID, refreshToken string) 
 }
 
 // --- Me
-func (s *authService) Me(ctx context.Context, userID string) (*model.AuthMeResponse, error) {
+func (s *authService) Me(ctx context.Context, userID string) (*transfer.AuthMeResponse, error) {
 	user, err := s.queries.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	sessionsDb, _ := s.queries.ListSessionsByUserID(ctx, userID)
-	sessions := make([]*model.AuthSessionResponse, 0, len(sessionsDb))
+	sessions := make([]*transfer.AuthSessionResponse, 0, len(sessionsDb))
 
 	for _, sess := range sessionsDb {
-		sessions = append(sessions, &model.AuthSessionResponse{
+		sessions = append(sessions, &transfer.AuthSessionResponse{
 			ID:            sess.ID,
 			AccessJti:     sess.AccessJti,
 			AccessExp:     utility.FromPGTimestampToString(sess.AccessExp),
@@ -297,21 +297,21 @@ func (s *authService) Me(ctx context.Context, userID string) (*model.AuthMeRespo
 		})
 	}
 
-	userResp := &model.AuthUserResponse{
+	userResp := &transfer.AuthUserResponse{
 		ID:        user.ID,
 		Username:  user.Username,
 		IsBlocked: user.IsBlocked,
 		IsChecked: user.IsChecked,
 	}
 
-	return &model.AuthMeResponse{
+	return &transfer.AuthMeResponse{
 		User:     userResp,
 		Sessions: sessions,
 	}, nil
 }
 
 // --- Block / Unblock
-func (s *authService) Block(ctx context.Context, userID string, blocked bool) (*model.AuthUserResponse, error) {
+func (s *authService) Block(ctx context.Context, userID string, blocked bool) (*transfer.AuthUserResponse, error) {
 	user, err := s.queries.UpdateUserIsBlockedByID(ctx, &dbs.UpdateUserIsBlockedByIDParams{
 		ID:        userID,
 		IsBlocked: blocked,
@@ -328,7 +328,7 @@ func (s *authService) Block(ctx context.Context, userID string, blocked bool) (*
 		}
 	}
 
-	return &model.AuthUserResponse{
+	return &transfer.AuthUserResponse{
 		ID:        user.ID,
 		Username:  user.Username,
 		IsBlocked: user.IsBlocked,

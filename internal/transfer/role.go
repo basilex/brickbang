@@ -1,4 +1,4 @@
-package model
+package transfer
 
 // RoleCreateRequest
 type RoleCreateRequest struct {

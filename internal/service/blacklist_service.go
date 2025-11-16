@@ -8,8 +8,9 @@ import (
 )
 
 type IBlacklistService interface {
-	BlockToken(ctx context.Context, jti string, ttl time.Duration) error
+	Block(ctx context.Context, jti string, ttl time.Duration) error
 	IsBlocked(ctx context.Context, jti string) (bool, error)
+	Delete(ctx context.Context, jti string) error
 }
 
 type blacklistService struct {
@@ -20,10 +21,14 @@ func NewBlacklistService(repo dbc.IBlacklistRepository) IBlacklistService {
 	return &blacklistService{repo: repo}
 }
 
-func (rcv *blacklistService) BlockToken(ctx context.Context, jti string, ttl time.Duration) error {
-	return rcv.repo.Add(ctx, jti, ttl)
+func (s *blacklistService) Block(ctx context.Context, jti string, ttl time.Duration) error {
+	return s.repo.Add(ctx, jti, ttl)
 }
 
-func (rcv *blacklistService) IsBlocked(ctx context.Context, jti string) (bool, error) {
-	return rcv.repo.Exists(ctx, jti)
+func (s *blacklistService) IsBlocked(ctx context.Context, jti string) (bool, error) {
+	return s.repo.Exists(ctx, jti)
+}
+
+func (s *blacklistService) Delete(ctx context.Context, jti string) error {
+	return s.repo.Delete(ctx, jti)
 }

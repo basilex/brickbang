@@ -8,37 +8,44 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-const redisBlacklistKey = "blacklist:"
+const blacklistKeyPrefix = "auth:blacklist:"
 
 type IBlacklistRepository interface {
 	Add(ctx context.Context, jti string, ttl time.Duration) error
 	Exists(ctx context.Context, jti string) (bool, error)
+	Delete(ctx context.Context, jti string) error
 }
 
 type blacklistRepository struct {
-	client *redis.Client
+	rdb *redis.Client
 }
 
-func NewBlacklistRepository(client *redis.Client) IBlacklistRepository {
-	return &blacklistRepository{
-		client: client,
-	}
+func NewBlacklistRepository(rdb *redis.Client) IBlacklistRepository {
+	return &blacklistRepository{rdb: rdb}
 }
 
-func (rcv *blacklistRepository) Add(ctx context.Context, jti string, ttl time.Duration) error {
+func key(jti string) string {
+	return blacklistKeyPrefix + jti
+}
+
+func (r *blacklistRepository) Add(ctx context.Context, jti string, ttl time.Duration) error {
 	if jti == "" {
-		return fmt.Errorf("jti cannot be empty")
+		return fmt.Errorf("empty jti")
 	}
-
-	return rcv.client.Set(ctx, redisBlacklistKey+jti, true, ttl).Err()
+	return r.rdb.Set(ctx, key(jti), 1, ttl).Err()
 }
 
-func (rcv *blacklistRepository) Exists(ctx context.Context, jti string) (bool, error) {
+func (r *blacklistRepository) Exists(ctx context.Context, jti string) (bool, error) {
 	if jti == "" {
-		return false, fmt.Errorf("jti cannot be empty")
+		return false, fmt.Errorf("empty jti")
 	}
+	res, err := r.rdb.Exists(ctx, key(jti)).Result()
+	return res == 1, err
+}
 
-	res, err := rcv.client.Exists(ctx, redisBlacklistKey+jti).Result()
-
-	return res > 0, err
+func (r *blacklistRepository) Delete(ctx context.Context, jti string) error {
+	if jti == "" {
+		return fmt.Errorf("empty jti")
+	}
+	return r.rdb.Del(ctx, key(jti)).Err()
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/rs/xid"
 
 	"brickbang/internal/config"
 )
@@ -37,8 +38,9 @@ func GenerateRandomString(n int) (string, error) {
 
 // GenerateAccessToken generates an access token and returns (tokenString, jti, error)
 func GenerateAccessToken(userID, sessionID string, ttl time.Duration) (string, string, error) {
-	jti := uuid.NewString()
 	now := time.Now().UTC()
+	jti := xid.New().String()
+
 	claims := AccessTokenClaims{
 		UserID:    userID,
 		JTI:       jti,

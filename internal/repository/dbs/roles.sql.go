@@ -9,139 +9,127 @@ import (
 	"context"
 )
 
-const roleCreate = `-- name: RoleCreate :one
-insert into roles(name) values($1) returning id, name, created_at, updated_at
+const countRoles = `-- name: CountRoles :one
+SELECT COUNT(*) FROM roles
 `
 
-// RoleCreate
+// Count
 //
-//	insert into roles(name) values($1) returning id, name, created_at, updated_at
-func (q *Queries) RoleCreate(ctx context.Context, name string) (*Role, error) {
-	row := q.db.QueryRow(ctx, roleCreate, name)
-	var i Role
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return &i, err
-}
-
-const roleDeleteByID = `-- name: RoleDeleteByID :one
-delete from roles where id = $1 returning id
-`
-
-// RoleDeleteByID
-//
-//	delete from roles where id = $1 returning id
-func (q *Queries) RoleDeleteByID(ctx context.Context, id string) (string, error) {
-	row := q.db.QueryRow(ctx, roleDeleteByID, id)
-	err := row.Scan(&id)
-	return id, err
-}
-
-const roleGetByID = `-- name: RoleGetByID :one
-select id, name, created_at, updated_at from roles r where r.id = $1
-`
-
-// RoleGetByID
-//
-//	select id, name, created_at, updated_at from roles r where r.id = $1
-func (q *Queries) RoleGetByID(ctx context.Context, id string) (*Role, error) {
-	row := q.db.QueryRow(ctx, roleGetByID, id)
-	var i Role
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return &i, err
-}
-
-const roleGetByName = `-- name: RoleGetByName :one
-select id, name, created_at, updated_at from roles r where r.name = $1
-`
-
-// RoleGetByName
-//
-//	select id, name, created_at, updated_at from roles r where r.name = $1
-func (q *Queries) RoleGetByName(ctx context.Context, name string) (*Role, error) {
-	row := q.db.QueryRow(ctx, roleGetByName, name)
-	var i Role
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return &i, err
-}
-
-const roleUpdateByID = `-- name: RoleUpdateByID :one
-update roles
-   set name = $1
- where id = $2 returning id, name, created_at, updated_at
-`
-
-type RoleUpdateByIDParams struct {
-	Name string `json:"name"`
-	ID   string `json:"id"`
-}
-
-// RoleUpdateByID
-//
-//	update roles
-//	   set name = $1
-//	 where id = $2 returning id, name, created_at, updated_at
-func (q *Queries) RoleUpdateByID(ctx context.Context, arg *RoleUpdateByIDParams) (*Role, error) {
-	row := q.db.QueryRow(ctx, roleUpdateByID, arg.Name, arg.ID)
-	var i Role
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return &i, err
-}
-
-const rolesCount = `-- name: RolesCount :one
-select count(*) from roles
-`
-
-// RolesCount
-//
-//	select count(*) from roles
-func (q *Queries) RolesCount(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, rolesCount)
+//	SELECT COUNT(*) FROM roles
+func (q *Queries) CountRoles(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countRoles)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
-const rolesList = `-- name: RolesList :many
-select id, name, created_at, updated_at
-  from roles r
- order by $1::text
- limit $3 offset $2
+const createRole = `-- name: CreateRole :one
+
+INSERT INTO roles (name) VALUES ($1)
+RETURNING id, name, created_at, updated_at
 `
 
-type RolesListParams struct {
-	SqlOrder  string `json:"sql_order"`
-	SqlOffset int32  `json:"sql_offset"`
-	SqlLimit  int32  `json:"sql_limit"`
+// Roles
+// Create
+//
+//	INSERT INTO roles (name) VALUES ($1)
+//	RETURNING id, name, created_at, updated_at
+func (q *Queries) CreateRole(ctx context.Context, name string) (*Role, error) {
+	row := q.db.QueryRow(ctx, createRole, name)
+	var i Role
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
 }
 
-// RolesList
+const deleteRoleByID = `-- name: DeleteRoleByID :one
+DELETE FROM roles WHERE id = $1
+RETURNING id, name, created_at, updated_at
+`
+
+// Delete
 //
-//	select id, name, created_at, updated_at
-//	  from roles r
-//	 order by $1::text
-//	 limit $3 offset $2
-func (q *Queries) RolesList(ctx context.Context, arg *RolesListParams) ([]*Role, error) {
-	rows, err := q.db.Query(ctx, rolesList, arg.SqlOrder, arg.SqlOffset, arg.SqlLimit)
+//	DELETE FROM roles WHERE id = $1
+//	RETURNING id, name, created_at, updated_at
+func (q *Queries) DeleteRoleByID(ctx context.Context, id string) (*Role, error) {
+	row := q.db.QueryRow(ctx, deleteRoleByID, id)
+	var i Role
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const getRoleByID = `-- name: GetRoleByID :one
+SELECT id, name, created_at, updated_at FROM roles WHERE id = $1
+`
+
+// Get by ID
+//
+//	SELECT id, name, created_at, updated_at FROM roles WHERE id = $1
+func (q *Queries) GetRoleByID(ctx context.Context, id string) (*Role, error) {
+	row := q.db.QueryRow(ctx, getRoleByID, id)
+	var i Role
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const getRoleByName = `-- name: GetRoleByName :one
+SELECT id, name, created_at, updated_at FROM roles WHERE name = $1
+`
+
+// Get by name
+//
+//	SELECT id, name, created_at, updated_at FROM roles WHERE name = $1
+func (q *Queries) GetRoleByName(ctx context.Context, name string) (*Role, error) {
+	row := q.db.QueryRow(ctx, getRoleByName, name)
+	var i Role
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const listRoles = `-- name: ListRoles :many
+SELECT id, name, created_at, updated_at
+FROM roles
+ORDER BY
+    CASE WHEN $1 = 'asc' THEN name END ASC,
+    CASE WHEN $1 = 'desc' THEN name END DESC
+LIMIT $3 OFFSET $2
+`
+
+type ListRolesParams struct {
+	Sqlorder  interface{} `json:"sqlorder"`
+	Sqloffset int32       `json:"sqloffset"`
+	Sqllimit  int32       `json:"sqllimit"`
+}
+
+// List with pagination
+//
+//	SELECT id, name, created_at, updated_at
+//	FROM roles
+//	ORDER BY
+//	    CASE WHEN $1 = 'asc' THEN name END ASC,
+//	    CASE WHEN $1 = 'desc' THEN name END DESC
+//	LIMIT $3 OFFSET $2
+func (q *Queries) ListRoles(ctx context.Context, arg *ListRolesParams) ([]*Role, error) {
+	rows, err := q.db.Query(ctx, listRoles, arg.Sqlorder, arg.Sqloffset, arg.Sqllimit)
 	if err != nil {
 		return nil, err
 	}
@@ -163,4 +151,34 @@ func (q *Queries) RolesList(ctx context.Context, arg *RolesListParams) ([]*Role,
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateRoleByID = `-- name: UpdateRoleByID :one
+UPDATE roles
+SET name = $2
+WHERE id = $1
+RETURNING id, name, created_at, updated_at
+`
+
+type UpdateRoleByIDParams struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// Update
+//
+//	UPDATE roles
+//	SET name = $2
+//	WHERE id = $1
+//	RETURNING id, name, created_at, updated_at
+func (q *Queries) UpdateRoleByID(ctx context.Context, arg *UpdateRoleByIDParams) (*Role, error) {
+	row := q.db.QueryRow(ctx, updateRoleByID, arg.ID, arg.Name)
+	var i Role
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
 }

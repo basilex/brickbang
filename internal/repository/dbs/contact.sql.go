@@ -10,9 +10,10 @@ import (
 )
 
 const createContact = `-- name: CreateContact :one
-insert into contact(user_id, class, content)
-values($1, $2, $3)
-returning id, user_id, class, content, created_at, updated_at
+
+INSERT INTO contact (user_id, class, content)
+VALUES ($1,$2,$3)
+RETURNING id, user_id, class, content, created_at, updated_at
 `
 
 type CreateContactParams struct {
@@ -21,11 +22,12 @@ type CreateContactParams struct {
 	Content string `json:"content"`
 }
 
-// CreateContact
+// Contact
+// Create
 //
-//	insert into contact(user_id, class, content)
-//	values($1, $2, $3)
-//	returning id, user_id, class, content, created_at, updated_at
+//	INSERT INTO contact (user_id, class, content)
+//	VALUES ($1,$2,$3)
+//	RETURNING id, user_id, class, content, created_at, updated_at
 func (q *Queries) CreateContact(ctx context.Context, arg *CreateContactParams) (*Contact, error) {
 	row := q.db.QueryRow(ctx, createContact, arg.UserID, arg.Class, arg.Content)
 	var i Contact
@@ -41,29 +43,35 @@ func (q *Queries) CreateContact(ctx context.Context, arg *CreateContactParams) (
 }
 
 const deleteContactByID = `-- name: DeleteContactByID :one
-delete from contact where id = $1 returning id
+DELETE FROM contact WHERE id=$1
+RETURNING id, user_id, class, content, created_at, updated_at
 `
 
-// DeleteContactByID
+// Delete
 //
-//	delete from contact where id = $1 returning id
-func (q *Queries) DeleteContactByID(ctx context.Context, id string) (string, error) {
+//	DELETE FROM contact WHERE id=$1
+//	RETURNING id, user_id, class, content, created_at, updated_at
+func (q *Queries) DeleteContactByID(ctx context.Context, id string) (*Contact, error) {
 	row := q.db.QueryRow(ctx, deleteContactByID, id)
-	err := row.Scan(&id)
-	return id, err
+	var i Contact
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Class,
+		&i.Content,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
 }
 
 const getContactByID = `-- name: GetContactByID :one
-select id, user_id, class, content, created_at, updated_at
-from contact
-where id = $1
+SELECT id, user_id, class, content, created_at, updated_at FROM contact WHERE id = $1
 `
 
-// GetContactByID
+// Get by ID
 //
-//	select id, user_id, class, content, created_at, updated_at
-//	from contact
-//	where id = $1
+//	SELECT id, user_id, class, content, created_at, updated_at FROM contact WHERE id = $1
 func (q *Queries) GetContactByID(ctx context.Context, id string) (*Contact, error) {
 	row := q.db.QueryRow(ctx, getContactByID, id)
 	var i Contact
@@ -79,18 +87,12 @@ func (q *Queries) GetContactByID(ctx context.Context, id string) (*Contact, erro
 }
 
 const listContactsByUserID = `-- name: ListContactsByUserID :many
-select id, user_id, class, content, created_at, updated_at
-from contact
-where user_id = $1
-order by class, content
+SELECT id, user_id, class, content, created_at, updated_at FROM contact WHERE user_id = $1 ORDER BY created_at DESC
 `
 
-// ListContactsByUserID
+// List by UserID
 //
-//	select id, user_id, class, content, created_at, updated_at
-//	from contact
-//	where user_id = $1
-//	order by class, content
+//	SELECT id, user_id, class, content, created_at, updated_at FROM contact WHERE user_id = $1 ORDER BY created_at DESC
 func (q *Queries) ListContactsByUserID(ctx context.Context, userID string) ([]*Contact, error) {
 	rows, err := q.db.Query(ctx, listContactsByUserID, userID)
 	if err != nil {
@@ -118,29 +120,27 @@ func (q *Queries) ListContactsByUserID(ctx context.Context, userID string) ([]*C
 	return items, nil
 }
 
-const updateContact = `-- name: UpdateContact :one
-update contact
-set class = $1,
-    content = $2
-where id = $3
-returning id, user_id, class, content, created_at, updated_at
+const updateContactByID = `-- name: UpdateContactByID :one
+UPDATE contact
+SET class=$2, content=$3
+WHERE id=$1
+RETURNING id, user_id, class, content, created_at, updated_at
 `
 
-type UpdateContactParams struct {
+type UpdateContactByIDParams struct {
+	ID      string `json:"id"`
 	Class   string `json:"class"`
 	Content string `json:"content"`
-	ID      string `json:"id"`
 }
 
-// UpdateContact
+// Update
 //
-//	update contact
-//	set class = $1,
-//	    content = $2
-//	where id = $3
-//	returning id, user_id, class, content, created_at, updated_at
-func (q *Queries) UpdateContact(ctx context.Context, arg *UpdateContactParams) (*Contact, error) {
-	row := q.db.QueryRow(ctx, updateContact, arg.Class, arg.Content, arg.ID)
+//	UPDATE contact
+//	SET class=$2, content=$3
+//	WHERE id=$1
+//	RETURNING id, user_id, class, content, created_at, updated_at
+func (q *Queries) UpdateContactByID(ctx context.Context, arg *UpdateContactByIDParams) (*Contact, error) {
+	row := q.db.QueryRow(ctx, updateContactByID, arg.ID, arg.Class, arg.Content)
 	var i Contact
 	err := row.Scan(
 		&i.ID,

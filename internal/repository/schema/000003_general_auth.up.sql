@@ -89,6 +89,9 @@ create table session (
     access_exp      timestamp       not null,
     refresh_exp     timestamp       not null,
 
+    access_jti      varchar(256)   not null default '',
+    refresh_jti     varchar(256)   not null default '',
+
     access_status   varchar(32)     not null default 'valid' check(access_status in ('valid','expired','revoked')),
     refresh_status  varchar(32)     not null default 'valid' check(refresh_status in ('valid','expired','revoked')),
 

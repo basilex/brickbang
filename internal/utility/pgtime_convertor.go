@@ -20,3 +20,10 @@ func FromPGTimestamp(ts pgtype.Timestamp) time.Time {
 
 	return time.Time{}
 }
+
+func FromPGTimestampToString(ts pgtype.Timestamp) string {
+	if ts.Valid {
+		return ts.Time.UTC().Format(time.RFC3339)
+	}
+	return ""
+}

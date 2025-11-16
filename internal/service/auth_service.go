@@ -2,14 +2,17 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
 
 	"brickbang/internal/config"
-	"brickbang/internal/mapper"
 	"brickbang/internal/model"
 	"brickbang/internal/repository/dbs"
 	"brickbang/internal/utility"
@@ -27,7 +30,7 @@ type IAuthService interface {
 	Register(ctx context.Context, req *model.AuthRegisterRequest) (*model.AuthUserResponse, error)
 	Login(ctx context.Context, req *model.AuthLoginRequest) (*model.AuthLoginResponse, error)
 	Logout(ctx context.Context, sessionID string) error
-	Refresh(ctx context.Context, userID, refreshToken string) (*model.AuthSessionResponse, error)
+	Refresh(ctx context.Context, userID, refreshToken string) (*model.AuthLoginResponse, error)
 	Me(ctx context.Context, userID string) (*model.AuthMeResponse, error)
 	Block(ctx context.Context, userID string, blocked bool) (*model.AuthUserResponse, error)
 }
@@ -41,46 +44,46 @@ func NewAuthService(q *dbs.Queries, bl IBlacklistService) IAuthService {
 	return &authService{queries: q, blacklist: bl}
 }
 
-// --- private helper
-func (rcv *authService) blockAccessToken(ctx context.Context, token string, exp time.Time) {
-	if token == "" {
-		return
+// --- Блокировка access токена по JTI
+func (s *authService) blockAccessTokenByJTI(ctx context.Context, accessJTI string, accessExp time.Time) error {
+	if accessJTI == "" {
+		return nil
 	}
-	if claims, err := utility.ParseAccessToken(token); err == nil {
-		ttl := max(time.Until(exp), 0)
-		_ = rcv.blacklist.BlockToken(ctx, claims.JTI, ttl)
+	if time.Now().UTC().After(accessExp) {
+		_, err := s.queries.ExpireAccessTokenByJTI(ctx, accessJTI)
+		return err
 	}
+	_, err := s.queries.RevokeAccessTokenByJTI(ctx, accessJTI)
+	return err
 }
 
 // --- Register
-func (rcv *authService) Register(ctx context.Context, req *model.AuthRegisterRequest) (*model.AuthUserResponse, error) {
+func (s *authService) Register(ctx context.Context, req *model.AuthRegisterRequest) (*model.AuthUserResponse, error) {
 	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := rcv.queries.AuthCreateUser(ctx, &dbs.AuthCreateUserParams{
+	user, err := s.queries.CreateUser(ctx, &dbs.CreateUserParams{
 		Username:  req.Username,
 		Password:  string(hashed),
-		IsChecked: true,
+		IsChecked: false,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	u := &dbs.User{
+	return &model.AuthUserResponse{
 		ID:        user.ID,
 		Username:  user.Username,
-		IsBlocked: false,
+		IsBlocked: user.IsBlocked,
 		IsChecked: user.IsChecked,
-	}
-
-	return mapper.MapUserToAuthUserResponse(u), nil
+	}, nil
 }
 
 // --- Login
-func (rcv *authService) Login(ctx context.Context, req *model.AuthLoginRequest) (*model.AuthLoginResponse, error) {
-	user, err := rcv.queries.AuthSelectUserCredentials(ctx, req.Username)
+func (s *authService) Login(ctx context.Context, req *model.AuthLoginRequest) (*model.AuthLoginResponse, error) {
+	user, err := s.queries.GetUserByUsername(ctx, req.Username)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrInvalidCredentials
@@ -96,28 +99,30 @@ func (rcv *authService) Login(ctx context.Context, req *model.AuthLoginRequest) 
 		return nil, ErrInvalidCredentials
 	}
 
+	// --- Ревокация старых сессий
+	sessions, _ := s.queries.ListSessionsByUserID(ctx, user.ID)
+	for _, sess := range sessions {
+		_ = s.blockAccessTokenByJTI(ctx, sess.AccessJti, sess.AccessExp.Time)
+		_, _ = s.queries.RevokeSessionByID(ctx, sess.ID)
+	}
+
 	now := time.Now().UTC()
 	accessExp := now.Add(config.Get().JWTAccessExpiration)
 	refreshExp := now.Add(config.Get().JWTRefreshExpiration)
 
-	randStr, err := utility.GenerateRandomString(32)
-	if err != nil {
-		return nil, err
-	}
-	refreshPlain, _, err := utility.GenerateRefreshToken(randStr)
-	if err != nil {
-		return nil, err
-	}
+	// --- Генерация refresh токена с xid
+	refreshPlain, _ := utility.GenerateRandomString(32)
+	refreshJti := xid.New().String()
+	refreshHash := sha256.Sum256([]byte(refreshPlain))
+	refreshHashHex := hex.EncodeToString(refreshHash[:])
 
-	refreshTokenHash, err := bcrypt.GenerateFromPassword([]byte(refreshPlain), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
-	}
-
-	session, err := rcv.queries.AuthCreateSession(ctx, &dbs.AuthCreateSessionParams{
+	// --- Создание сессии
+	session, err := s.queries.CreateSession(ctx, &dbs.CreateSessionParams{
 		UserID:       user.ID,
 		AccessToken:  "",
-		RefreshToken: string(refreshTokenHash),
+		AccessJti:    "",
+		RefreshToken: refreshHashHex,
+		RefreshJti:   refreshJti,
 		AccessExp:    utility.ToPGTimestamp(accessExp),
 		RefreshExp:   utility.ToPGTimestamp(refreshExp),
 		IpAddress:    req.IpAddress,
@@ -127,72 +132,74 @@ func (rcv *authService) Login(ctx context.Context, req *model.AuthLoginRequest) 
 		return nil, err
 	}
 
-	accessToken, _, err := utility.GenerateAccessToken(user.ID, session.ID, config.Get().JWTAccessExpiration)
-	if err != nil {
-		_, _ = rcv.queries.AuthRevokeSessionByID(ctx, session.ID)
-		return nil, err
-	}
+	// --- Генерация access токена
+	accessToken, accessJti, _ := utility.GenerateAccessToken(user.ID, session.ID, config.Get().JWTAccessExpiration)
 
-	updated, err := rcv.queries.AuthUpdateAccessTokenByID(ctx, &dbs.AuthUpdateAccessTokenByIDParams{
+	updatedSession, err := s.queries.UpdateAccessTokenByID(ctx, &dbs.UpdateAccessTokenByIDParams{
 		ID:          session.ID,
 		AccessToken: accessToken,
+		AccessJti:   accessJti,
 		AccessExp:   utility.ToPGTimestamp(accessExp),
 	})
 	if err != nil {
-		_, _ = rcv.queries.AuthRevokeSessionByID(ctx, session.ID)
+		_, _ = s.queries.RevokeSessionByID(ctx, session.ID)
 		return nil, err
 	}
 
 	resp := &model.AuthLoginResponse{
-		User: mapper.MapUserToAuthUserResponse(&dbs.User{
+		User: &model.AuthUserResponse{
 			ID:        user.ID,
 			Username:  user.Username,
 			IsBlocked: user.IsBlocked,
 			IsChecked: user.IsChecked,
-		}),
-		Session: mapper.MapSessionToAuthSessionResponse(&dbs.Session{
-			ID:            updated.ID,
-			IpAddress:     session.IpAddress,
-			UserAgent:     session.UserAgent,
-			AccessExp:     updated.AccessExp,
-			RefreshExp:    session.RefreshExp,
-			AccessStatus:  updated.AccessStatus,
-			RefreshStatus: session.RefreshStatus,
-			CreatedAt:     session.CreatedAt,
-			AccessToken:   accessToken,
-			RefreshToken:  refreshPlain,
-		}),
+		},
+		Session: &model.AuthSessionResponse{
+			ID:            updatedSession.ID,
+			AccessJti:     updatedSession.AccessJti,
+			RefreshJti:    updatedSession.RefreshJti,
+			AccessExp:     utility.FromPGTimestampToString(updatedSession.AccessExp),
+			RefreshExp:    utility.FromPGTimestampToString(updatedSession.RefreshExp),
+			AccessStatus:  updatedSession.AccessStatus,
+			RefreshStatus: updatedSession.RefreshStatus,
+			IpAddress:     updatedSession.IpAddress,
+			UserAgent:     updatedSession.UserAgent,
+			CreatedAt:     utility.FromPGTimestampToString(updatedSession.CreatedAt),
+			UpdatedAt:     utility.FromPGTimestampToString(updatedSession.UpdatedAt),
+		},
+		TokenType:    "Bearer",
+		AccessToken:  accessToken,
+		RefreshToken: refreshPlain,
+		ExpiresIn:    int64(config.Get().JWTAccessExpiration.Seconds()),
 	}
 
-	// _ = accessJTI
 	return resp, nil
 }
 
 // --- Logout
-func (rcv *authService) Logout(ctx context.Context, sessionID string) error {
-	sess, err := rcv.queries.AuthSelectSessionByID(ctx, sessionID)
+func (s *authService) Logout(ctx context.Context, sessionID string) error {
+	sess, err := s.queries.GetSessionByID(ctx, sessionID)
 	if err != nil {
 		return err
 	}
-
-	rcv.blockAccessToken(ctx, sess.AccessToken, sess.AccessExp.Time)
-	_, err = rcv.queries.AuthRevokeSessionByID(ctx, sessionID)
-	return err
+	return s.blockAccessTokenByJTI(ctx, sess.AccessJti, sess.AccessExp.Time)
 }
 
 // --- Refresh
-func (rcv *authService) Refresh(ctx context.Context, userID, refreshToken string) (*model.AuthSessionResponse, error) {
-	sessions, err := rcv.queries.AuthListSessionsByUserID(ctx, userID)
+func (s *authService) Refresh(ctx context.Context, userID, refreshToken string) (*model.AuthLoginResponse, error) {
+	sessions, err := s.queries.ListSessionsByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
+
+	hash := sha256.Sum256([]byte(refreshToken))
+	refreshHash := hex.EncodeToString(hash[:])
 
 	var sess *dbs.Session
 	for i := range sessions {
 		if sessions[i].RefreshStatus != "valid" {
 			continue
 		}
-		if bcrypt.CompareHashAndPassword([]byte(sessions[i].RefreshToken), []byte(refreshToken)) == nil {
+		if sessions[i].RefreshToken == refreshHash {
 			sess = sessions[i]
 			break
 		}
@@ -202,78 +209,110 @@ func (rcv *authService) Refresh(ctx context.Context, userID, refreshToken string
 		return nil, ErrInvalidRefreshToken
 	}
 
-	if refreshJTI, err := utility.ParseRefreshTokenPlain(refreshToken); err == nil {
-		blocked, err := rcv.blacklist.IsBlocked(ctx, refreshJTI)
-		if err != nil {
-			return nil, err
-		}
-		if blocked {
-			return nil, ErrInvalidRefreshToken
-		}
-	}
-
-	if sess.RefreshExp.Time.Before(time.Now().UTC()) {
+	if !sess.RefreshExp.Valid || sess.RefreshExp.Time.Before(time.Now().UTC()) {
 		return nil, ErrRefreshTokenExpired
 	}
 
-	rcv.blockAccessToken(ctx, sess.AccessToken, sess.AccessExp.Time)
+	_ = s.blockAccessTokenByJTI(ctx, sess.AccessJti, sess.AccessExp.Time)
 
-	newAccessToken, newJTI, err := utility.GenerateAccessToken(sess.UserID, sess.ID, config.Get().JWTAccessExpiration)
-	if err != nil {
-		return nil, err
-	}
-	_ = newJTI
+	// --- Генерация новых токенов с xid
+	newAccessToken, newAccessJti, _ := utility.GenerateAccessToken(sess.UserID, sess.ID, config.Get().JWTAccessExpiration)
+	newRefreshPlain, _ := utility.GenerateRandomString(32)
+	newRefreshJti := xid.New().String()
+	newRefreshHash := sha256.Sum256([]byte(newRefreshPlain))
+	newRefreshHashHex := hex.EncodeToString(newRefreshHash[:])
 
 	newAccessExp := time.Now().UTC().Add(config.Get().JWTAccessExpiration)
-	updated, err := rcv.queries.AuthUpdateAccessTokenByID(ctx, &dbs.AuthUpdateAccessTokenByIDParams{
-		ID:          sess.ID,
-		AccessToken: newAccessToken,
-		AccessExp:   utility.ToPGTimestamp(newAccessExp),
+	newRefreshExp := time.Now().UTC().Add(config.Get().JWTRefreshExpiration)
+
+	updatedSession, err := s.queries.RotateTokensByID(ctx, &dbs.RotateTokensByIDParams{
+		ID:           sess.ID,
+		AccessToken:  newAccessToken,
+		AccessJti:    newAccessJti,
+		AccessExp:    pgtype.Timestamp{Time: newAccessExp, Valid: true},
+		RefreshToken: newRefreshHashHex,
+		RefreshJti:   newRefreshJti,
+		RefreshExp:   pgtype.Timestamp{Time: newRefreshExp, Valid: true},
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	resp := &model.AuthSessionResponse{
-		ID:            updated.ID,
-		IpAddress:     sess.IpAddress,
-		UserAgent:     sess.UserAgent,
-		AccessExp:     updated.AccessExp.Time.Format(time.RFC3339),
-		RefreshExp:    sess.RefreshExp.Time.Format(time.RFC3339),
-		AccessStatus:  updated.AccessStatus,
-		RefreshStatus: sess.RefreshStatus,
-		CreatedAt:     sess.CreatedAt.Time.Format(time.RFC3339),
+	formatTime := func(ts pgtype.Timestamp) string {
+		if ts.Valid {
+			return ts.Time.UTC().Format(time.RFC3339)
+		}
+		return ""
 	}
 
-	return resp, nil
+	sessionResp := &model.AuthSessionResponse{
+		ID:            updatedSession.ID,
+		AccessJti:     updatedSession.AccessJti,
+		AccessExp:     formatTime(updatedSession.AccessExp),
+		RefreshJti:    updatedSession.RefreshJti,
+		RefreshExp:    formatTime(updatedSession.RefreshExp),
+		AccessStatus:  updatedSession.AccessStatus,
+		RefreshStatus: updatedSession.RefreshStatus,
+		IpAddress:     updatedSession.IpAddress,
+		UserAgent:     updatedSession.UserAgent,
+		CreatedAt:     formatTime(updatedSession.CreatedAt),
+		UpdatedAt:     formatTime(updatedSession.UpdatedAt),
+	}
+
+	return &model.AuthLoginResponse{
+		User: &model.AuthUserResponse{
+			ID: sess.UserID,
+		},
+		Session:      sessionResp,
+		TokenType:    "Bearer",
+		AccessToken:  newAccessToken,
+		RefreshToken: newRefreshPlain,
+		ExpiresIn:    int64(config.Get().JWTAccessExpiration.Seconds()),
+	}, nil
 }
 
 // --- Me
-func (rcv *authService) Me(ctx context.Context, userID string) (*model.AuthMeResponse, error) {
-	user, err := rcv.queries.AuthSelectUserByID(ctx, userID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrUserNotFound
-		}
-		return nil, err
-	}
-
-	sessions, err := rcv.queries.AuthListSessionsByUserID(ctx, userID)
+func (s *authService) Me(ctx context.Context, userID string) (*model.AuthMeResponse, error) {
+	user, err := s.queries.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	return mapper.MapUserAndSessionsToMeResponse(&dbs.User{
+	sessionsDb, _ := s.queries.ListSessionsByUserID(ctx, userID)
+	sessions := make([]*model.AuthSessionResponse, 0, len(sessionsDb))
+
+	for _, sess := range sessionsDb {
+		sessions = append(sessions, &model.AuthSessionResponse{
+			ID:            sess.ID,
+			AccessJti:     sess.AccessJti,
+			AccessExp:     utility.FromPGTimestampToString(sess.AccessExp),
+			RefreshJti:    sess.RefreshJti,
+			RefreshExp:    utility.FromPGTimestampToString(sess.RefreshExp),
+			AccessStatus:  sess.AccessStatus,
+			RefreshStatus: sess.RefreshStatus,
+			IpAddress:     sess.IpAddress,
+			UserAgent:     sess.UserAgent,
+			CreatedAt:     utility.FromPGTimestampToString(sess.CreatedAt),
+			UpdatedAt:     utility.FromPGTimestampToString(sess.UpdatedAt),
+		})
+	}
+
+	userResp := &model.AuthUserResponse{
 		ID:        user.ID,
 		Username:  user.Username,
 		IsBlocked: user.IsBlocked,
 		IsChecked: user.IsChecked,
-	}, sessions), nil
+	}
+
+	return &model.AuthMeResponse{
+		User:     userResp,
+		Sessions: sessions,
+	}, nil
 }
 
 // --- Block / Unblock
-func (rcv *authService) Block(ctx context.Context, userID string, blocked bool) (*model.AuthUserResponse, error) {
-	user, err := rcv.queries.UserUpdateIsBlockedByID(ctx, &dbs.UserUpdateIsBlockedByIDParams{
+func (s *authService) Block(ctx context.Context, userID string, blocked bool) (*model.AuthUserResponse, error) {
+	user, err := s.queries.UpdateUserIsBlockedByID(ctx, &dbs.UpdateUserIsBlockedByIDParams{
 		ID:        userID,
 		IsBlocked: blocked,
 	})
@@ -282,19 +321,17 @@ func (rcv *authService) Block(ctx context.Context, userID string, blocked bool) 
 	}
 
 	if blocked {
-		sessions, err := rcv.queries.AuthListSessionsByUserID(ctx, userID)
-		if err == nil {
-			for _, s := range sessions {
-				rcv.blockAccessToken(ctx, s.AccessToken, s.AccessExp.Time)
-				_, _ = rcv.queries.AuthRevokeSessionByID(ctx, s.ID)
-			}
+		sessions, _ := s.queries.ListSessionsByUserID(ctx, userID)
+		for _, sess := range sessions {
+			_ = s.blockAccessTokenByJTI(ctx, sess.AccessJti, sess.AccessExp.Time)
+			_, _ = s.queries.RevokeSessionByID(ctx, sess.ID)
 		}
 	}
 
-	return mapper.MapUserToAuthUserResponse(&dbs.User{
+	return &model.AuthUserResponse{
 		ID:        user.ID,
 		Username:  user.Username,
 		IsBlocked: user.IsBlocked,
 		IsChecked: user.IsChecked,
-	}), nil
+	}, nil
 }

@@ -1,25 +1,27 @@
--- name: ListContactsByUserID :many
-select *
-from contact
-where user_id = @user_id
-order by class, content;
+-- Contact
 
--- name: GetContactByID :one
-select *
-from contact
-where id = @id;
-
+-- Create
 -- name: CreateContact :one
-insert into contact(user_id, class, content)
-values(@user_id, @class, @content)
-returning *;
+INSERT INTO contact (user_id, class, content)
+VALUES ($1,$2,$3)
+RETURNING *;
 
--- name: UpdateContact :one
-update contact
-set class = @class,
-    content = @content
-where id = @id
-returning *;
+-- Get by ID
+-- name: GetContactByID :one
+SELECT * FROM contact WHERE id = $1;
 
+-- List by UserID
+-- name: ListContactsByUserID :many
+SELECT * FROM contact WHERE user_id = $1 ORDER BY created_at DESC;
+
+-- Update
+-- name: UpdateContactByID :one
+UPDATE contact
+SET class=$2, content=$3
+WHERE id=$1
+RETURNING *;
+
+-- Delete
 -- name: DeleteContactByID :one
-delete from contact where id = @id returning id;
+DELETE FROM contact WHERE id=$1
+RETURNING *;

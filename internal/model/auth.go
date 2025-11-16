@@ -1,33 +1,33 @@
 package model
 
-// AuthLoginRequest — вход по логину и паролю.
+// AuthRegisterRequest
+type AuthRegisterRequest struct {
+	Username string `json:"username" validate:"required,min=3,max=64"`
+	Password string `json:"password" validate:"required,min=6,max=72"`
+}
+
+// AuthLoginRequest
 type AuthLoginRequest struct {
 	Username  string `json:"username" validate:"required,min=3,max=64"`
-	Password  string `json:"password" validate:"required,min=6,max=128"`
+	Password  string `json:"password" validate:"required,min=6,max=72"`
 	IpAddress string `json:"ip_address,omitempty"`
 	UserAgent string `json:"user_agent,omitempty"`
 }
 
-// AuthRegisterRequest — регистрация нового пользователя.
-type AuthRegisterRequest struct {
-	Username string `json:"username" validate:"required,min=3,max=64"`
-	Password string `json:"password" validate:"required,min=6,max=128"`
-}
-
-// AuthRefreshRequest — обновление пары токенов.
+// AuthRefreshRequest
 type AuthRefreshRequest struct {
 	UserID       string `json:"user_id" validate:"required"`
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
-// AuthLogoutRequest — завершение активной сессии.
+// AuthLogoutRequest
 type AuthLogoutRequest struct {
 	SessionID string `json:"session_id" validate:"required"`
 }
 
 // ======== AUTH RESPONSES ========
 
-// AuthUserResponse — минимальные данные о пользователе.
+// AuthUserResponse
 type AuthUserResponse struct {
 	ID        string `json:"id"`
 	Username  string `json:"username"`
@@ -35,31 +35,38 @@ type AuthUserResponse struct {
 	IsChecked bool   `json:"is_checked"`
 }
 
-// AuthSessionResponse — сведения об активной сессии пользователя.
+// AuthSessionResponse
 type AuthSessionResponse struct {
 	ID            string `json:"id"`
-	IpAddress     string `json:"ip_address"`
-	UserAgent     string `json:"user_agent"`
+	AccessJti     string `json:"access_jti"`
+	RefreshJti    string `json:"refresh_jti"`
 	AccessExp     string `json:"access_exp"`
 	RefreshExp    string `json:"refresh_exp"`
 	AccessStatus  string `json:"access_status"`
 	RefreshStatus string `json:"refresh_status"`
+	IpAddress     string `json:"ip_address"`
+	UserAgent     string `json:"user_agent"`
 	CreatedAt     string `json:"created_at"`
+	UpdatedAt     string `json:"updated_at"`
 }
 
-// AuthLoginResponse — ответ логина.
+// AuthLoginResponse
 type AuthLoginResponse struct {
-	User    *AuthUserResponse    `json:"user"`
-	Session *AuthSessionResponse `json:"session"`
+	User         *AuthUserResponse    `json:"user"`
+	Session      *AuthSessionResponse `json:"session"`
+	AccessToken  string               `json:"access_token"`
+	RefreshToken string               `json:"refresh_token"`
+	TokenType    string               `json:"token_type" default:"Bearer"`
+	ExpiresIn    int64                `json:"expires_in"`
 }
 
-// AuthMeResponse — объединённый ответ при запросе /me.
+// AuthMeResponse
 type AuthMeResponse struct {
 	User     *AuthUserResponse      `json:"user"`
 	Sessions []*AuthSessionResponse `json:"sessions"`
 }
 
-// AuthTokenResponse — ответ с новой парой токенов.
+// AuthTokenResponse
 type AuthTokenResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
@@ -67,9 +74,11 @@ type AuthTokenResponse struct {
 	ExpiresIn    int64  `json:"expires_in"`
 }
 
-// AuthClaims — структура для JWT claims (внутренняя).
+// AuthClaims
 type AuthClaims struct {
-	UserID   string `json:"user_id"`
-	Username string `json:"username"`
-	Session  string `json:"session"`
+	UserID     string `json:"user_id"`
+	Username   string `json:"username"`
+	Session    string `json:"session"`
+	AccessJti  string `json:"access_jti"`
+	RefreshJti string `json:"refresh_jti"`
 }

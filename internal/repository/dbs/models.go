@@ -73,6 +73,8 @@ type Session struct {
 	RefreshToken  string           `json:"refresh_token"`
 	AccessExp     pgtype.Timestamp `json:"access_exp"`
 	RefreshExp    pgtype.Timestamp `json:"refresh_exp"`
+	AccessJti     string           `json:"access_jti"`
+	RefreshJti    string           `json:"refresh_jti"`
 	AccessStatus  string           `json:"access_status"`
 	RefreshStatus string           `json:"refresh_status"`
 	IpAddress     string           `json:"ip_address"`

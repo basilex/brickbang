@@ -1,55 +1,40 @@
--- name: UserCreate :one
-insert into users (username, password)
-values (@username, @password)
-returning id, username, is_blocked, is_checked, blocked_at, checked_at, visited_at, created_at, updated_at;
+-- Users
 
--- name: UserCount :one
-select count(*) from users;
+-- Create
+-- name: CreateUser :one
+INSERT INTO users (username, password, is_checked)
+VALUES ($1, $2, $3)
+RETURNING *;
 
--- name: UserList :many
-select id, username, is_blocked, is_checked, blocked_at, checked_at, visited_at, created_at, updated_at
-from users u
-order by @sql_order::text
-limit @sql_limit offset @sql_offset;
+-- Get by ID
+-- name: GetUserByID :one
+SELECT * FROM users WHERE id = $1;
 
--- name: UserGetByID :one
-select id, username, is_blocked, is_checked, blocked_at, checked_at, visited_at, created_at, updated_at
-from users u
-where u.id = @id;
+-- Get by username
+-- name: GetUserByUsername :one
+SELECT * FROM users WHERE username = $1;
 
--- name: UserGetByUsername :one
-select id, username, is_blocked, is_checked, blocked_at, checked_at, visited_at, created_at, updated_at
-from users u
-where u.username = @username;
+-- List all users
+-- name: ListUsers :many
+SELECT * FROM users ORDER BY created_at DESC;
 
--- name: UserUpdateCredentialsByID :one
-update users
-set username = @username,
-    password = @password
-where id = @id
-returning id, username, is_blocked, is_checked, blocked_at, checked_at, visited_at, created_at, updated_at;
+-- Update user
+-- name: UpdateUserByID :one
+UPDATE users
+SET username = $2, password = $3, is_checked = $4, is_blocked = $5
+WHERE id = $1
+RETURNING *;
 
--- name: UserUpdateIsBlockedByID :one
-update users
-set is_blocked = @is_blocked,
-    blocked_at = case when @is_blocked then timezone('utc', now()) else blocked_at end
-where id = @id
-returning id, username, is_blocked, is_checked, blocked_at, checked_at, visited_at, created_at, updated_at;
+-- Update block status
+-- name: UpdateUserIsBlockedByID :one
+UPDATE users
+SET is_blocked = $2,
+    blocked_at = CASE WHEN $2 THEN NOW() ELSE '1000-01-01'::timestamp END,
+    updated_at = NOW()
+WHERE id = $1
+RETURNING id, username, is_blocked, is_checked;
 
--- name: UserUpdateIsCheckedByID :one
-update users
-set is_checked = @is_checked,
-    checked_at = case when @is_checked then timezone('utc', now()) else checked_at end
-where id = @id
-returning id, username, is_blocked, is_checked, blocked_at, checked_at, visited_at, created_at, updated_at;
-
--- name: UserUpdateVisitedAtByID :one
-update users
-set visited_at = timezone('utc', now())
-where id = @id
-returning id, username, is_blocked, is_checked, blocked_at, checked_at, visited_at, created_at, updated_at;
-
--- name: UserDeleteByID :one
-delete from users
-where id = @id
-returning id;
+-- Delete user
+-- name: DeleteUserByID :one
+DELETE FROM users WHERE id = $1
+RETURNING *;

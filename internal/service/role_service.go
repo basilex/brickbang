@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"log"
 
 	"brickbang/internal/repository/dbs"
 )
@@ -26,79 +25,58 @@ func NewRoleService(q *dbs.Queries) IRoleService {
 	return &roleService{queries: q}
 }
 
-func (rcv *roleService) Create(ctx context.Context, name string) (*dbs.Role, error) {
-	role, err := rcv.queries.RoleCreate(ctx, name)
-	if err != nil {
-		log.Printf("failed to create role: %v", err)
-		return nil, err
-	}
-
-	return role, nil
+// Create a new role
+func (s *roleService) Create(ctx context.Context, name string) (*dbs.Role, error) {
+	return s.queries.CreateRole(ctx, name)
 }
 
-func (rcv *roleService) GetByID(ctx context.Context, id string) (*dbs.Role, error) {
-	role, err := rcv.queries.RoleGetByID(ctx, id)
+// Get a role by its ID
+func (s *roleService) GetByID(ctx context.Context, id string) (*dbs.Role, error) {
+	role, err := s.queries.GetRoleByID(ctx, id)
 	if err != nil {
-		log.Printf("role not found by id (%s): %v", id, err)
 		return nil, errors.New("role not found")
 	}
-
 	return role, nil
 }
 
-func (rcv *roleService) GetByName(ctx context.Context, name string) (*dbs.Role, error) {
-	role, err := rcv.queries.RoleGetByName(ctx, name)
+// Get a role by its name
+func (s *roleService) GetByName(ctx context.Context, name string) (*dbs.Role, error) {
+	role, err := s.queries.GetRoleByName(ctx, name)
 	if err != nil {
-		log.Printf("role not found by name (%s): %v", name, err)
 		return nil, errors.New("role not found")
 	}
-
 	return role, nil
 }
 
-func (rcv *roleService) Count(ctx context.Context) (int64, error) {
-	count, err := rcv.queries.RolesCount(ctx)
-	if err != nil {
-		log.Printf("failed to count roles: %v", err)
-		return 0, err
-	}
-
-	return count, nil
+// Count total number of roles
+func (s *roleService) Count(ctx context.Context) (int64, error) {
+	return s.queries.CountRoles(ctx)
 }
 
-func (rcv *roleService) List(ctx context.Context, order string, limit, offset int32) ([]*dbs.Role, error) {
-	roles, err := rcv.queries.RolesList(ctx, &dbs.RolesListParams{
-		SqlOrder:  order,
-		SqlLimit:  limit,
-		SqlOffset: offset,
-	})
-	if err != nil {
-		log.Printf("failed to list roles: %v", err)
-		return nil, err
+// List roles with pagination and order
+func (s *roleService) List(ctx context.Context, order string, limit, offset int32) ([]*dbs.Role, error) {
+	params := &dbs.ListRolesParams{
+		Sqlorder:  order,
+		Sqllimit:  limit,
+		Sqloffset: offset,
 	}
-
-	return roles, nil
+	return s.queries.ListRoles(ctx, params)
 }
 
-func (rcv *roleService) UpdateByID(ctx context.Context, id string, name string) (*dbs.Role, error) {
-	role, err := rcv.queries.RoleUpdateByID(ctx, &dbs.RoleUpdateByIDParams{
+// Update role name by ID
+func (s *roleService) UpdateByID(ctx context.Context, id string, name string) (*dbs.Role, error) {
+	params := &dbs.UpdateRoleByIDParams{
 		ID:   id,
 		Name: name,
-	})
-	if err != nil {
-		log.Printf("failed to update role: %v", err)
-		return nil, err
 	}
-
-	return role, nil
+	return s.queries.UpdateRoleByID(ctx, params)
 }
 
-func (rcv *roleService) DeleteByID(ctx context.Context, id string) (string, error) {
-	deletedID, err := rcv.queries.RoleDeleteByID(ctx, id)
+// Delete role by ID
+func (s *roleService) DeleteByID(ctx context.Context, id string) (string, error) {
+	role, err := s.queries.DeleteRoleByID(ctx, id)
 	if err != nil {
-		log.Printf("failed to delete role: %v", err)
 		return "", err
 	}
-
-	return deletedID, nil
+	return role.ID, nil
 }

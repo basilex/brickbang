@@ -1,81 +1,51 @@
+-- Session
+
+-- Create
 -- name: CreateSession :one
-insert into session (
-    user_id,
-    access_token,
-    refresh_token,
-    access_exp,
-    refresh_exp,
-    ip_address,
-    user_agent
-) values (
-    @user_id, @access_token, @refresh_token, @access_exp, @refresh_exp, @ip_address, @user_agent
-)
-returning
-    id, user_id, access_token, refresh_token, access_exp, refresh_exp,
-    access_status, refresh_status, ip_address, user_agent, created_at, updated_at;
+INSERT INTO session (user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, ip_address, user_agent)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+RETURNING *;
 
--- name: CountSessions :one
-select count(*) from session;
-
--- name: ListSessionsByUserID :many
-select *
-from session
-where user_id = @user_id
-order by created_at desc;
-
+-- Get by ID
 -- name: GetSessionByID :one
-select *
-from session
-where id = @id;
+SELECT * FROM session WHERE id = $1;
 
--- name: GetSessionByAccessToken :one
-select *
-from session
-where access_token = @access_token
-  and access_status = 'valid';
+-- List by UserID
+-- name: ListSessionsByUserID :many
+SELECT * FROM session WHERE user_id = $1 ORDER BY created_at DESC;
 
--- name: GetSessionByRefreshToken :one
-select *
-from session
-where refresh_token = @refresh_token
-  and refresh_status = 'valid';
-
+-- Update access token
 -- name: UpdateAccessTokenByID :one
-update session
-set access_token = @access_token,
-    access_exp = @access_exp,
-    access_status = 'valid'
-where id = @id
-returning id, access_token, access_exp, access_status;
+UPDATE session
+SET access_token = $2, access_jti = $3, access_exp = $4
+WHERE id = $1
+RETURNING *;
 
--- name: UpdateRefreshTokenByID :one
-update session
-set refresh_token = @refresh_token,
-    refresh_exp = @refresh_exp,
-    refresh_status = 'valid'
-where id = @id
-returning id, refresh_token, refresh_exp, refresh_status;
+-- Rotate tokens
+-- name: RotateTokensByID :one
+UPDATE session
+SET access_token = $2, access_jti = $3, access_exp = $4,
+    refresh_token = $5, refresh_jti = $6, refresh_exp = $7
+WHERE id = $1
+RETURNING *;
 
--- name: RevokeAccessTokenByID :one
-update session
-set access_status = 'revoked'
-where id = @id
-returning id, user_id, access_status;
+-- Revoke session
+-- name: RevokeSessionByID :one
+UPDATE session
+SET access_status = 'revoked', refresh_status = 'revoked'
+WHERE id = $1
+RETURNING *;
 
--- name: RevokeRefreshTokenByID :one
-update session
-set refresh_status = 'revoked'
-where id = @id
-returning id, user_id, refresh_status;
+-- name: ExpireAccessTokenByJTI :one
+UPDATE session
+SET access_status = 'expired',
+    updated_at = timezone('utc', now())
+WHERE access_jti = $1
+RETURNING *;
 
--- name: ExpireAccessTokenByID :one
-update session
-set access_status = 'expired'
-where id = @id
-returning id, access_status;
-
--- name: ExpireRefreshTokenByID :one
-update session
-set refresh_status = 'expired'
-where id = @id
-returning id, refresh_status;
+-- name: RevokeAccessTokenByJTI :one
+UPDATE session
+SET access_status = 'revoked',
+    updated_at = timezone('utc', now())
+WHERE access_jti = $1
+RETURNING *;

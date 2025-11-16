@@ -1,10 +1,11 @@
-// controller/role_controller.go
 package controller
 
 import (
+	"errors"
+
 	"github.com/gofiber/fiber/v2"
 
-	"brickbang/internal/mapper"
+	"brickbang/internal/model"
 	"brickbang/internal/service"
 	"brickbang/internal/utility"
 )
@@ -12,6 +13,7 @@ import (
 type IRoleController interface {
 	RegisterRoutes(router fiber.Router)
 }
+
 type RoleController struct {
 	svc service.IRoleService
 }
@@ -28,46 +30,57 @@ func (rc *RoleController) RegisterRoutes(router fiber.Router) {
 	router.Delete("/:id", rc.Delete)
 }
 
+// List roles with pagination
 func (rc *RoleController) List(ctx *fiber.Ctx) error {
 	limit, _ := utility.ParseIntQuery(ctx, "limit", 20)
 	offset, _ := utility.ParseIntQuery(ctx, "offset", 0)
 	order := ctx.Query("order", "id asc")
 
-	list, err := rc.svc.List(ctx.Context(), order, int32(limit), int32(offset))
+	roles, err := rc.svc.List(ctx.Context(), order, int32(limit), int32(offset))
 	if err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
-	count, err := rc.svc.Count(ctx.Context())
-	if err != nil {
-		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
+	resp := make([]*model.RoleResponse, len(roles))
+
+	for idx, role := range roles {
+		resp[idx] = &model.RoleResponse{
+			ID:        role.ID,
+			Name:      role.Name,
+			CreatedAt: utility.FromPGTimestampToString(role.CreatedAt),
+			UpdatedAt: utility.FromPGTimestampToString(role.UpdatedAt),
+		}
 	}
 
-	return ctx.JSON(fiber.Map{
-		"data":  mapper.RoleToResponseList(list),
-		"count": count,
-	})
+	return ctx.JSON(resp)
 }
 
+// Get role by ID
 func (rc *RoleController) Get(ctx *fiber.Ctx) error {
 	id, err := utility.ParseID(ctx, "id")
 	if err != nil {
-		return err // already a *fiber.Error
+		return err
 	}
 
 	role, err := rc.svc.GetByID(ctx.Context(), id)
 	if err != nil {
-		return utility.RespondWithError(ctx, fiber.StatusNotFound, err)
+		return utility.RespondWithError(ctx, fiber.StatusNotFound, errors.New("role not found"))
 	}
 
-	return ctx.JSON(mapper.RoleToResponse(role))
+	return ctx.JSON(&model.RoleResponse{
+		ID:        role.ID,
+		Name:      role.Name,
+		CreatedAt: utility.FromPGTimestampToString(role.CreatedAt),
+		UpdatedAt: utility.FromPGTimestampToString(role.UpdatedAt),
+	})
 }
 
+// Create new role
 func (rc *RoleController) Create(ctx *fiber.Ctx) error {
-	var req mapper.RoleCreateRequest
+	var req model.RoleCreateRequest
 
 	if err := utility.ValidateBody(ctx, &req); err != nil {
-		return err // already a *fiber.Error
+		return err
 	}
 
 	role, err := rc.svc.Create(ctx.Context(), req.Name)
@@ -75,16 +88,22 @@ func (rc *RoleController) Create(ctx *fiber.Ctx) error {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(mapper.RoleToResponse(role))
+	return ctx.Status(fiber.StatusCreated).JSON(&model.RoleResponse{
+		ID:        role.ID,
+		Name:      role.Name,
+		CreatedAt: utility.FromPGTimestampToString(role.CreatedAt),
+		UpdatedAt: utility.FromPGTimestampToString(role.UpdatedAt),
+	})
 }
 
+// Update role by ID
 func (rc *RoleController) Update(ctx *fiber.Ctx) error {
 	id, err := utility.ParseID(ctx, "id")
 	if err != nil {
 		return err
 	}
 
-	var req mapper.RoleUpdateRequest
+	var req model.RoleUpdateRequest
 
 	if err := utility.ValidateBody(ctx, &req); err != nil {
 		return err
@@ -95,9 +114,15 @@ func (rc *RoleController) Update(ctx *fiber.Ctx) error {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
-	return ctx.JSON(mapper.RoleToResponse(role))
+	return ctx.JSON(&model.RoleResponse{
+		ID:        role.ID,
+		Name:      role.Name,
+		CreatedAt: utility.FromPGTimestampToString(role.CreatedAt),
+		UpdatedAt: utility.FromPGTimestampToString(role.UpdatedAt),
+	})
 }
 
+// Delete role by ID
 func (rc *RoleController) Delete(ctx *fiber.Ctx) error {
 	id, err := utility.ParseID(ctx, "id")
 	if err != nil {

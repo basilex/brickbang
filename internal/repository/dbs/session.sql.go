@@ -11,35 +11,11 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countSessions = `-- name: CountSessions :one
-select count(*) from session
-`
-
-// CountSessions
-//
-//	select count(*) from session
-func (q *Queries) CountSessions(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, countSessions)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createSession = `-- name: CreateSession :one
-insert into session (
-    user_id,
-    access_token,
-    refresh_token,
-    access_exp,
-    refresh_exp,
-    ip_address,
-    user_agent
-) values (
-    $1, $2, $3, $4, $5, $6, $7
-)
-returning
-    id, user_id, access_token, refresh_token, access_exp, refresh_exp,
-    access_status, refresh_status, ip_address, user_agent, created_at, updated_at
+
+INSERT INTO session (user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, ip_address, user_agent)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 `
 
 type CreateSessionParams struct {
@@ -48,26 +24,18 @@ type CreateSessionParams struct {
 	RefreshToken string           `json:"refresh_token"`
 	AccessExp    pgtype.Timestamp `json:"access_exp"`
 	RefreshExp   pgtype.Timestamp `json:"refresh_exp"`
+	AccessJti    string           `json:"access_jti"`
+	RefreshJti   string           `json:"refresh_jti"`
 	IpAddress    string           `json:"ip_address"`
 	UserAgent    string           `json:"user_agent"`
 }
 
-// CreateSession
+// Session
+// Create
 //
-//	insert into session (
-//	    user_id,
-//	    access_token,
-//	    refresh_token,
-//	    access_exp,
-//	    refresh_exp,
-//	    ip_address,
-//	    user_agent
-//	) values (
-//	    $1, $2, $3, $4, $5, $6, $7
-//	)
-//	returning
-//	    id, user_id, access_token, refresh_token, access_exp, refresh_exp,
-//	    access_status, refresh_status, ip_address, user_agent, created_at, updated_at
+//	INSERT INTO session (user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, ip_address, user_agent)
+//	VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+//	RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 func (q *Queries) CreateSession(ctx context.Context, arg *CreateSessionParams) (*Session, error) {
 	row := q.db.QueryRow(ctx, createSession,
 		arg.UserID,
@@ -75,6 +43,8 @@ func (q *Queries) CreateSession(ctx context.Context, arg *CreateSessionParams) (
 		arg.RefreshToken,
 		arg.AccessExp,
 		arg.RefreshExp,
+		arg.AccessJti,
+		arg.RefreshJti,
 		arg.IpAddress,
 		arg.UserAgent,
 	)
@@ -86,6 +56,8 @@ func (q *Queries) CreateSession(ctx context.Context, arg *CreateSessionParams) (
 		&i.RefreshToken,
 		&i.AccessExp,
 		&i.RefreshExp,
+		&i.AccessJti,
+		&i.RefreshJti,
 		&i.AccessStatus,
 		&i.RefreshStatus,
 		&i.IpAddress,
@@ -96,71 +68,23 @@ func (q *Queries) CreateSession(ctx context.Context, arg *CreateSessionParams) (
 	return &i, err
 }
 
-const expireAccessTokenByID = `-- name: ExpireAccessTokenByID :one
-update session
-set access_status = 'expired'
-where id = $1
-returning id, access_status
+const expireAccessTokenByJTI = `-- name: ExpireAccessTokenByJTI :one
+UPDATE session
+SET access_status = 'expired',
+    updated_at = timezone('utc', now())
+WHERE access_jti = $1
+RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 `
 
-type ExpireAccessTokenByIDRow struct {
-	ID           string `json:"id"`
-	AccessStatus string `json:"access_status"`
-}
-
-// ExpireAccessTokenByID
+// ExpireAccessTokenByJTI
 //
-//	update session
-//	set access_status = 'expired'
-//	where id = $1
-//	returning id, access_status
-func (q *Queries) ExpireAccessTokenByID(ctx context.Context, id string) (*ExpireAccessTokenByIDRow, error) {
-	row := q.db.QueryRow(ctx, expireAccessTokenByID, id)
-	var i ExpireAccessTokenByIDRow
-	err := row.Scan(&i.ID, &i.AccessStatus)
-	return &i, err
-}
-
-const expireRefreshTokenByID = `-- name: ExpireRefreshTokenByID :one
-update session
-set refresh_status = 'expired'
-where id = $1
-returning id, refresh_status
-`
-
-type ExpireRefreshTokenByIDRow struct {
-	ID            string `json:"id"`
-	RefreshStatus string `json:"refresh_status"`
-}
-
-// ExpireRefreshTokenByID
-//
-//	update session
-//	set refresh_status = 'expired'
-//	where id = $1
-//	returning id, refresh_status
-func (q *Queries) ExpireRefreshTokenByID(ctx context.Context, id string) (*ExpireRefreshTokenByIDRow, error) {
-	row := q.db.QueryRow(ctx, expireRefreshTokenByID, id)
-	var i ExpireRefreshTokenByIDRow
-	err := row.Scan(&i.ID, &i.RefreshStatus)
-	return &i, err
-}
-
-const getSessionByAccessToken = `-- name: GetSessionByAccessToken :one
-select id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
-from session
-where access_token = $1
-  and access_status = 'valid'
-`
-
-// GetSessionByAccessToken
-//
-//	select id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
-//	from session
-//	where access_token = $1
-//	  and access_status = 'valid'
-func (q *Queries) GetSessionByAccessToken(ctx context.Context, accessToken string) (*Session, error) {
-	row := q.db.QueryRow(ctx, getSessionByAccessToken, accessToken)
+//	UPDATE session
+//	SET access_status = 'expired',
+//	    updated_at = timezone('utc', now())
+//	WHERE access_jti = $1
+//	RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
+func (q *Queries) ExpireAccessTokenByJTI(ctx context.Context, accessJti string) (*Session, error) {
+	row := q.db.QueryRow(ctx, expireAccessTokenByJTI, accessJti)
 	var i Session
 	err := row.Scan(
 		&i.ID,
@@ -169,6 +93,8 @@ func (q *Queries) GetSessionByAccessToken(ctx context.Context, accessToken strin
 		&i.RefreshToken,
 		&i.AccessExp,
 		&i.RefreshExp,
+		&i.AccessJti,
+		&i.RefreshJti,
 		&i.AccessStatus,
 		&i.RefreshStatus,
 		&i.IpAddress,
@@ -180,16 +106,12 @@ func (q *Queries) GetSessionByAccessToken(ctx context.Context, accessToken strin
 }
 
 const getSessionByID = `-- name: GetSessionByID :one
-select id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
-from session
-where id = $1
+SELECT id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at FROM session WHERE id = $1
 `
 
-// GetSessionByID
+// Get by ID
 //
-//	select id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
-//	from session
-//	where id = $1
+//	SELECT id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at FROM session WHERE id = $1
 func (q *Queries) GetSessionByID(ctx context.Context, id string) (*Session, error) {
 	row := q.db.QueryRow(ctx, getSessionByID, id)
 	var i Session
@@ -200,39 +122,8 @@ func (q *Queries) GetSessionByID(ctx context.Context, id string) (*Session, erro
 		&i.RefreshToken,
 		&i.AccessExp,
 		&i.RefreshExp,
-		&i.AccessStatus,
-		&i.RefreshStatus,
-		&i.IpAddress,
-		&i.UserAgent,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return &i, err
-}
-
-const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
-select id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
-from session
-where refresh_token = $1
-  and refresh_status = 'valid'
-`
-
-// GetSessionByRefreshToken
-//
-//	select id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
-//	from session
-//	where refresh_token = $1
-//	  and refresh_status = 'valid'
-func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (*Session, error) {
-	row := q.db.QueryRow(ctx, getSessionByRefreshToken, refreshToken)
-	var i Session
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.AccessToken,
-		&i.RefreshToken,
-		&i.AccessExp,
-		&i.RefreshExp,
+		&i.AccessJti,
+		&i.RefreshJti,
 		&i.AccessStatus,
 		&i.RefreshStatus,
 		&i.IpAddress,
@@ -244,18 +135,12 @@ func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 }
 
 const listSessionsByUserID = `-- name: ListSessionsByUserID :many
-select id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
-from session
-where user_id = $1
-order by created_at desc
+SELECT id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at FROM session WHERE user_id = $1 ORDER BY created_at DESC
 `
 
-// ListSessionsByUserID
+// List by UserID
 //
-//	select id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
-//	from session
-//	where user_id = $1
-//	order by created_at desc
+//	SELECT id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at FROM session WHERE user_id = $1 ORDER BY created_at DESC
 func (q *Queries) ListSessionsByUserID(ctx context.Context, userID string) ([]*Session, error) {
 	rows, err := q.db.Query(ctx, listSessionsByUserID, userID)
 	if err != nil {
@@ -272,6 +157,8 @@ func (q *Queries) ListSessionsByUserID(ctx context.Context, userID string) ([]*S
 			&i.RefreshToken,
 			&i.AccessExp,
 			&i.RefreshExp,
+			&i.AccessJti,
+			&i.RefreshJti,
 			&i.AccessStatus,
 			&i.RefreshStatus,
 			&i.IpAddress,
@@ -289,138 +176,176 @@ func (q *Queries) ListSessionsByUserID(ctx context.Context, userID string) ([]*S
 	return items, nil
 }
 
-const revokeAccessTokenByID = `-- name: RevokeAccessTokenByID :one
-update session
-set access_status = 'revoked'
-where id = $1
-returning id, user_id, access_status
+const revokeAccessTokenByJTI = `-- name: RevokeAccessTokenByJTI :one
+UPDATE session
+SET access_status = 'revoked',
+    updated_at = timezone('utc', now())
+WHERE access_jti = $1
+RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 `
 
-type RevokeAccessTokenByIDRow struct {
-	ID           string `json:"id"`
-	UserID       string `json:"user_id"`
-	AccessStatus string `json:"access_status"`
-}
-
-// RevokeAccessTokenByID
+// RevokeAccessTokenByJTI
 //
-//	update session
-//	set access_status = 'revoked'
-//	where id = $1
-//	returning id, user_id, access_status
-func (q *Queries) RevokeAccessTokenByID(ctx context.Context, id string) (*RevokeAccessTokenByIDRow, error) {
-	row := q.db.QueryRow(ctx, revokeAccessTokenByID, id)
-	var i RevokeAccessTokenByIDRow
-	err := row.Scan(&i.ID, &i.UserID, &i.AccessStatus)
-	return &i, err
-}
-
-const revokeRefreshTokenByID = `-- name: RevokeRefreshTokenByID :one
-update session
-set refresh_status = 'revoked'
-where id = $1
-returning id, user_id, refresh_status
-`
-
-type RevokeRefreshTokenByIDRow struct {
-	ID            string `json:"id"`
-	UserID        string `json:"user_id"`
-	RefreshStatus string `json:"refresh_status"`
-}
-
-// RevokeRefreshTokenByID
-//
-//	update session
-//	set refresh_status = 'revoked'
-//	where id = $1
-//	returning id, user_id, refresh_status
-func (q *Queries) RevokeRefreshTokenByID(ctx context.Context, id string) (*RevokeRefreshTokenByIDRow, error) {
-	row := q.db.QueryRow(ctx, revokeRefreshTokenByID, id)
-	var i RevokeRefreshTokenByIDRow
-	err := row.Scan(&i.ID, &i.UserID, &i.RefreshStatus)
-	return &i, err
-}
-
-const updateAccessTokenByID = `-- name: UpdateAccessTokenByID :one
-update session
-set access_token = $1,
-    access_exp = $2,
-    access_status = 'valid'
-where id = $3
-returning id, access_token, access_exp, access_status
-`
-
-type UpdateAccessTokenByIDParams struct {
-	AccessToken string           `json:"access_token"`
-	AccessExp   pgtype.Timestamp `json:"access_exp"`
-	ID          string           `json:"id"`
-}
-
-type UpdateAccessTokenByIDRow struct {
-	ID           string           `json:"id"`
-	AccessToken  string           `json:"access_token"`
-	AccessExp    pgtype.Timestamp `json:"access_exp"`
-	AccessStatus string           `json:"access_status"`
-}
-
-// UpdateAccessTokenByID
-//
-//	update session
-//	set access_token = $1,
-//	    access_exp = $2,
-//	    access_status = 'valid'
-//	where id = $3
-//	returning id, access_token, access_exp, access_status
-func (q *Queries) UpdateAccessTokenByID(ctx context.Context, arg *UpdateAccessTokenByIDParams) (*UpdateAccessTokenByIDRow, error) {
-	row := q.db.QueryRow(ctx, updateAccessTokenByID, arg.AccessToken, arg.AccessExp, arg.ID)
-	var i UpdateAccessTokenByIDRow
+//	UPDATE session
+//	SET access_status = 'revoked',
+//	    updated_at = timezone('utc', now())
+//	WHERE access_jti = $1
+//	RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
+func (q *Queries) RevokeAccessTokenByJTI(ctx context.Context, accessJti string) (*Session, error) {
+	row := q.db.QueryRow(ctx, revokeAccessTokenByJTI, accessJti)
+	var i Session
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
 		&i.AccessToken,
+		&i.RefreshToken,
 		&i.AccessExp,
+		&i.RefreshExp,
+		&i.AccessJti,
+		&i.RefreshJti,
 		&i.AccessStatus,
+		&i.RefreshStatus,
+		&i.IpAddress,
+		&i.UserAgent,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return &i, err
 }
 
-const updateRefreshTokenByID = `-- name: UpdateRefreshTokenByID :one
-update session
-set refresh_token = $1,
-    refresh_exp = $2,
-    refresh_status = 'valid'
-where id = $3
-returning id, refresh_token, refresh_exp, refresh_status
+const revokeSessionByID = `-- name: RevokeSessionByID :one
+UPDATE session
+SET access_status = 'revoked', refresh_status = 'revoked'
+WHERE id = $1
+RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 `
 
-type UpdateRefreshTokenByIDParams struct {
-	RefreshToken string           `json:"refresh_token"`
-	RefreshExp   pgtype.Timestamp `json:"refresh_exp"`
-	ID           string           `json:"id"`
-}
-
-type UpdateRefreshTokenByIDRow struct {
-	ID            string           `json:"id"`
-	RefreshToken  string           `json:"refresh_token"`
-	RefreshExp    pgtype.Timestamp `json:"refresh_exp"`
-	RefreshStatus string           `json:"refresh_status"`
-}
-
-// UpdateRefreshTokenByID
+// Revoke session
 //
-//	update session
-//	set refresh_token = $1,
-//	    refresh_exp = $2,
-//	    refresh_status = 'valid'
-//	where id = $3
-//	returning id, refresh_token, refresh_exp, refresh_status
-func (q *Queries) UpdateRefreshTokenByID(ctx context.Context, arg *UpdateRefreshTokenByIDParams) (*UpdateRefreshTokenByIDRow, error) {
-	row := q.db.QueryRow(ctx, updateRefreshTokenByID, arg.RefreshToken, arg.RefreshExp, arg.ID)
-	var i UpdateRefreshTokenByIDRow
+//	UPDATE session
+//	SET access_status = 'revoked', refresh_status = 'revoked'
+//	WHERE id = $1
+//	RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
+func (q *Queries) RevokeSessionByID(ctx context.Context, id string) (*Session, error) {
+	row := q.db.QueryRow(ctx, revokeSessionByID, id)
+	var i Session
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
+		&i.AccessToken,
 		&i.RefreshToken,
+		&i.AccessExp,
 		&i.RefreshExp,
+		&i.AccessJti,
+		&i.RefreshJti,
+		&i.AccessStatus,
 		&i.RefreshStatus,
+		&i.IpAddress,
+		&i.UserAgent,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const rotateTokensByID = `-- name: RotateTokensByID :one
+UPDATE session
+SET access_token = $2, access_jti = $3, access_exp = $4,
+    refresh_token = $5, refresh_jti = $6, refresh_exp = $7
+WHERE id = $1
+RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
+`
+
+type RotateTokensByIDParams struct {
+	ID           string           `json:"id"`
+	AccessToken  string           `json:"access_token"`
+	AccessJti    string           `json:"access_jti"`
+	AccessExp    pgtype.Timestamp `json:"access_exp"`
+	RefreshToken string           `json:"refresh_token"`
+	RefreshJti   string           `json:"refresh_jti"`
+	RefreshExp   pgtype.Timestamp `json:"refresh_exp"`
+}
+
+// Rotate tokens
+//
+//	UPDATE session
+//	SET access_token = $2, access_jti = $3, access_exp = $4,
+//	    refresh_token = $5, refresh_jti = $6, refresh_exp = $7
+//	WHERE id = $1
+//	RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
+func (q *Queries) RotateTokensByID(ctx context.Context, arg *RotateTokensByIDParams) (*Session, error) {
+	row := q.db.QueryRow(ctx, rotateTokensByID,
+		arg.ID,
+		arg.AccessToken,
+		arg.AccessJti,
+		arg.AccessExp,
+		arg.RefreshToken,
+		arg.RefreshJti,
+		arg.RefreshExp,
+	)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.AccessToken,
+		&i.RefreshToken,
+		&i.AccessExp,
+		&i.RefreshExp,
+		&i.AccessJti,
+		&i.RefreshJti,
+		&i.AccessStatus,
+		&i.RefreshStatus,
+		&i.IpAddress,
+		&i.UserAgent,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const updateAccessTokenByID = `-- name: UpdateAccessTokenByID :one
+UPDATE session
+SET access_token = $2, access_jti = $3, access_exp = $4
+WHERE id = $1
+RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
+`
+
+type UpdateAccessTokenByIDParams struct {
+	ID          string           `json:"id"`
+	AccessToken string           `json:"access_token"`
+	AccessJti   string           `json:"access_jti"`
+	AccessExp   pgtype.Timestamp `json:"access_exp"`
+}
+
+// Update access token
+//
+//	UPDATE session
+//	SET access_token = $2, access_jti = $3, access_exp = $4
+//	WHERE id = $1
+//	RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
+func (q *Queries) UpdateAccessTokenByID(ctx context.Context, arg *UpdateAccessTokenByIDParams) (*Session, error) {
+	row := q.db.QueryRow(ctx, updateAccessTokenByID,
+		arg.ID,
+		arg.AccessToken,
+		arg.AccessJti,
+		arg.AccessExp,
+	)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.AccessToken,
+		&i.RefreshToken,
+		&i.AccessExp,
+		&i.RefreshExp,
+		&i.AccessJti,
+		&i.RefreshJti,
+		&i.AccessStatus,
+		&i.RefreshStatus,
+		&i.IpAddress,
+		&i.UserAgent,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return &i, err
 }

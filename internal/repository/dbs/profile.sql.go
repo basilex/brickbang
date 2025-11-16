@@ -11,17 +11,119 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const getProfileByUserID = `-- name: GetProfileByUserID :one
-select id, user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa, created_at, updated_at
-from profile
-where user_id = $1
+const createProfile = `-- name: CreateProfile :one
+
+INSERT INTO profile (user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+RETURNING id, user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa, created_at, updated_at
 `
 
-// GetProfileByUserID
+type CreateProfileParams struct {
+	UserID    string      `json:"user_id"`
+	Firstname string      `json:"firstname"`
+	Lastname  string      `json:"lastname"`
+	Gender    string      `json:"gender"`
+	Birthday  pgtype.Date `json:"birthday"`
+	AvatarUrl string      `json:"avatar_url"`
+	Enable2fa bool        `json:"enable_2fa"`
+	Secret2fa pgtype.Text `json:"secret_2fa"`
+}
+
+// Profile
+// Create
 //
-//	select id, user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa, created_at, updated_at
-//	from profile
-//	where user_id = $1
+//	INSERT INTO profile (user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa)
+//	VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+//	RETURNING id, user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa, created_at, updated_at
+func (q *Queries) CreateProfile(ctx context.Context, arg *CreateProfileParams) (*Profile, error) {
+	row := q.db.QueryRow(ctx, createProfile,
+		arg.UserID,
+		arg.Firstname,
+		arg.Lastname,
+		arg.Gender,
+		arg.Birthday,
+		arg.AvatarUrl,
+		arg.Enable2fa,
+		arg.Secret2fa,
+	)
+	var i Profile
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Firstname,
+		&i.Lastname,
+		&i.Gender,
+		&i.Birthday,
+		&i.AvatarUrl,
+		&i.Enable2fa,
+		&i.Secret2fa,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const deleteProfileByID = `-- name: DeleteProfileByID :one
+DELETE FROM profile WHERE id=$1
+RETURNING id, user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa, created_at, updated_at
+`
+
+// Delete
+//
+//	DELETE FROM profile WHERE id=$1
+//	RETURNING id, user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa, created_at, updated_at
+func (q *Queries) DeleteProfileByID(ctx context.Context, id string) (*Profile, error) {
+	row := q.db.QueryRow(ctx, deleteProfileByID, id)
+	var i Profile
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Firstname,
+		&i.Lastname,
+		&i.Gender,
+		&i.Birthday,
+		&i.AvatarUrl,
+		&i.Enable2fa,
+		&i.Secret2fa,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const getProfileByID = `-- name: GetProfileByID :one
+SELECT id, user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa, created_at, updated_at FROM profile WHERE id = $1
+`
+
+// Get by ID
+//
+//	SELECT id, user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa, created_at, updated_at FROM profile WHERE id = $1
+func (q *Queries) GetProfileByID(ctx context.Context, id string) (*Profile, error) {
+	row := q.db.QueryRow(ctx, getProfileByID, id)
+	var i Profile
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Firstname,
+		&i.Lastname,
+		&i.Gender,
+		&i.Birthday,
+		&i.AvatarUrl,
+		&i.Enable2fa,
+		&i.Secret2fa,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const getProfileByUserID = `-- name: GetProfileByUserID :one
+SELECT id, user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa, created_at, updated_at FROM profile WHERE user_id = $1
+`
+
+// Get by UserID
+//
+//	SELECT id, user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa, created_at, updated_at FROM profile WHERE user_id = $1
 func (q *Queries) GetProfileByUserID(ctx context.Context, userID string) (*Profile, error) {
 	row := q.db.QueryRow(ctx, getProfileByUserID, userID)
 	var i Profile
@@ -41,20 +143,54 @@ func (q *Queries) GetProfileByUserID(ctx context.Context, userID string) (*Profi
 	return &i, err
 }
 
-const updateProfileByUserID = `-- name: UpdateProfileByUserID :one
-update profile
-set firstname = $1,
-    lastname = $2,
-    gender = $3,
-    birthday = $4,
-    avatar_url = $5,
-    enable_2fa = $6,
-    secret_2fa = $7
-where user_id = $8
-returning id, user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa, created_at, updated_at
+const listProfiles = `-- name: ListProfiles :many
+SELECT id, user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa, created_at, updated_at FROM profile ORDER BY created_at DESC
 `
 
-type UpdateProfileByUserIDParams struct {
+// List all
+//
+//	SELECT id, user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa, created_at, updated_at FROM profile ORDER BY created_at DESC
+func (q *Queries) ListProfiles(ctx context.Context) ([]*Profile, error) {
+	rows, err := q.db.Query(ctx, listProfiles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*Profile
+	for rows.Next() {
+		var i Profile
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Firstname,
+			&i.Lastname,
+			&i.Gender,
+			&i.Birthday,
+			&i.AvatarUrl,
+			&i.Enable2fa,
+			&i.Secret2fa,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateProfileByID = `-- name: UpdateProfileByID :one
+UPDATE profile
+SET firstname=$2, lastname=$3, gender=$4, birthday=$5, avatar_url=$6, enable_2fa=$7, secret_2fa=$8
+WHERE id=$1
+RETURNING id, user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa, created_at, updated_at
+`
+
+type UpdateProfileByIDParams struct {
+	ID        string      `json:"id"`
 	Firstname string      `json:"firstname"`
 	Lastname  string      `json:"lastname"`
 	Gender    string      `json:"gender"`
@@ -62,23 +198,17 @@ type UpdateProfileByUserIDParams struct {
 	AvatarUrl string      `json:"avatar_url"`
 	Enable2fa bool        `json:"enable_2fa"`
 	Secret2fa pgtype.Text `json:"secret_2fa"`
-	UserID    string      `json:"user_id"`
 }
 
-// UpdateProfileByUserID
+// Update
 //
-//	update profile
-//	set firstname = $1,
-//	    lastname = $2,
-//	    gender = $3,
-//	    birthday = $4,
-//	    avatar_url = $5,
-//	    enable_2fa = $6,
-//	    secret_2fa = $7
-//	where user_id = $8
-//	returning id, user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa, created_at, updated_at
-func (q *Queries) UpdateProfileByUserID(ctx context.Context, arg *UpdateProfileByUserIDParams) (*Profile, error) {
-	row := q.db.QueryRow(ctx, updateProfileByUserID,
+//	UPDATE profile
+//	SET firstname=$2, lastname=$3, gender=$4, birthday=$5, avatar_url=$6, enable_2fa=$7, secret_2fa=$8
+//	WHERE id=$1
+//	RETURNING id, user_id, firstname, lastname, gender, birthday, avatar_url, enable_2fa, secret_2fa, created_at, updated_at
+func (q *Queries) UpdateProfileByID(ctx context.Context, arg *UpdateProfileByIDParams) (*Profile, error) {
+	row := q.db.QueryRow(ctx, updateProfileByID,
+		arg.ID,
 		arg.Firstname,
 		arg.Lastname,
 		arg.Gender,
@@ -86,7 +216,6 @@ func (q *Queries) UpdateProfileByUserID(ctx context.Context, arg *UpdateProfileB
 		arg.AvatarUrl,
 		arg.Enable2fa,
 		arg.Secret2fa,
-		arg.UserID,
 	)
 	var i Profile
 	err := row.Scan(

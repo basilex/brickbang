@@ -13,8 +13,9 @@ import (
 
 const createSession = `-- name: CreateSession :one
 
-INSERT INTO session (user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, ip_address, user_agent)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+INSERT INTO session (
+  user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, ip_address, user_agent
+) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 `
 
@@ -31,10 +32,10 @@ type CreateSessionParams struct {
 }
 
 // Session
-// Create
 //
-//	INSERT INTO session (user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, ip_address, user_agent)
-//	VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+//	INSERT INTO session (
+//	  user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, ip_address, user_agent
+//	) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 //	RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 func (q *Queries) CreateSession(ctx context.Context, arg *CreateSessionParams) (*Session, error) {
 	row := q.db.QueryRow(ctx, createSession,
@@ -70,8 +71,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg *CreateSessionParams) (
 
 const expireAccessTokenByJTI = `-- name: ExpireAccessTokenByJTI :one
 UPDATE session
-SET access_status = 'expired',
-    updated_at = timezone('utc', now())
+   SET access_status = 'expired', updated_at = timezone('utc', now())
 WHERE access_jti = $1
 RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 `
@@ -79,8 +79,7 @@ RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, acc
 // ExpireAccessTokenByJTI
 //
 //	UPDATE session
-//	SET access_status = 'expired',
-//	    updated_at = timezone('utc', now())
+//	   SET access_status = 'expired', updated_at = timezone('utc', now())
 //	WHERE access_jti = $1
 //	RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 func (q *Queries) ExpireAccessTokenByJTI(ctx context.Context, accessJti string) (*Session, error) {
@@ -109,7 +108,7 @@ const getSessionByID = `-- name: GetSessionByID :one
 SELECT id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at FROM session WHERE id = $1
 `
 
-// Get by ID
+// GetSessionByID
 //
 //	SELECT id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at FROM session WHERE id = $1
 func (q *Queries) GetSessionByID(ctx context.Context, id string) (*Session, error) {
@@ -138,7 +137,7 @@ const listSessionsByUserID = `-- name: ListSessionsByUserID :many
 SELECT id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at FROM session WHERE user_id = $1 ORDER BY created_at DESC
 `
 
-// List by UserID
+// ListSessionsByUserID
 //
 //	SELECT id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at FROM session WHERE user_id = $1 ORDER BY created_at DESC
 func (q *Queries) ListSessionsByUserID(ctx context.Context, userID string) ([]*Session, error) {
@@ -178,56 +177,17 @@ func (q *Queries) ListSessionsByUserID(ctx context.Context, userID string) ([]*S
 
 const revokeAccessTokenByJTI = `-- name: RevokeAccessTokenByJTI :one
 UPDATE session
-SET access_status = 'revoked',
-    updated_at = timezone('utc', now())
-WHERE access_jti = $1
-RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
+   SET access_status = 'revoked', updated_at = timezone('utc', now())
+ WHERE access_jti = $1 RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 `
 
 // RevokeAccessTokenByJTI
 //
 //	UPDATE session
-//	SET access_status = 'revoked',
-//	    updated_at = timezone('utc', now())
-//	WHERE access_jti = $1
-//	RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
+//	   SET access_status = 'revoked', updated_at = timezone('utc', now())
+//	 WHERE access_jti = $1 RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 func (q *Queries) RevokeAccessTokenByJTI(ctx context.Context, accessJti string) (*Session, error) {
 	row := q.db.QueryRow(ctx, revokeAccessTokenByJTI, accessJti)
-	var i Session
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.AccessToken,
-		&i.RefreshToken,
-		&i.AccessExp,
-		&i.RefreshExp,
-		&i.AccessJti,
-		&i.RefreshJti,
-		&i.AccessStatus,
-		&i.RefreshStatus,
-		&i.IpAddress,
-		&i.UserAgent,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return &i, err
-}
-
-const revokeSessionByID = `-- name: RevokeSessionByID :one
-UPDATE session
-SET access_status = 'revoked', refresh_status = 'revoked'
-WHERE id = $1
-RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
-`
-
-// Revoke session
-//
-//	UPDATE session
-//	SET access_status = 'revoked', refresh_status = 'revoked'
-//	WHERE id = $1
-//	RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
-func (q *Queries) RevokeSessionByID(ctx context.Context, id string) (*Session, error) {
-	row := q.db.QueryRow(ctx, revokeSessionByID, id)
 	var i Session
 	err := row.Scan(
 		&i.ID,
@@ -251,7 +211,8 @@ func (q *Queries) RevokeSessionByID(ctx context.Context, id string) (*Session, e
 const rotateTokensByID = `-- name: RotateTokensByID :one
 UPDATE session
 SET access_token = $2, access_jti = $3, access_exp = $4,
-    refresh_token = $5, refresh_jti = $6, refresh_exp = $7
+    refresh_token = $5, refresh_jti = $6, refresh_exp = $7,
+    updated_at = timezone('utc', now())
 WHERE id = $1
 RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 `
@@ -266,11 +227,12 @@ type RotateTokensByIDParams struct {
 	RefreshExp   pgtype.Timestamp `json:"refresh_exp"`
 }
 
-// Rotate tokens
+// RotateTokensByID
 //
 //	UPDATE session
 //	SET access_token = $2, access_jti = $3, access_exp = $4,
-//	    refresh_token = $5, refresh_jti = $6, refresh_exp = $7
+//	    refresh_token = $5, refresh_jti = $6, refresh_exp = $7,
+//	    updated_at = timezone('utc', now())
 //	WHERE id = $1
 //	RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 func (q *Queries) RotateTokensByID(ctx context.Context, arg *RotateTokensByIDParams) (*Session, error) {
@@ -305,9 +267,8 @@ func (q *Queries) RotateTokensByID(ctx context.Context, arg *RotateTokensByIDPar
 
 const updateAccessTokenByID = `-- name: UpdateAccessTokenByID :one
 UPDATE session
-SET access_token = $2, access_jti = $3, access_exp = $4
-WHERE id = $1
-RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
+   SET access_token = $2, access_jti = $3, access_exp = $4
+ WHERE id = $1 RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 `
 
 type UpdateAccessTokenByIDParams struct {
@@ -317,12 +278,11 @@ type UpdateAccessTokenByIDParams struct {
 	AccessExp   pgtype.Timestamp `json:"access_exp"`
 }
 
-// Update access token
+// UpdateAccessTokenByID
 //
 //	UPDATE session
-//	SET access_token = $2, access_jti = $3, access_exp = $4
-//	WHERE id = $1
-//	RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
+//	   SET access_token = $2, access_jti = $3, access_exp = $4
+//	 WHERE id = $1 RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
 func (q *Queries) UpdateAccessTokenByID(ctx context.Context, arg *UpdateAccessTokenByIDParams) (*Session, error) {
 	row := q.db.QueryRow(ctx, updateAccessTokenByID,
 		arg.ID,

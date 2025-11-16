@@ -208,6 +208,43 @@ func (q *Queries) RevokeAccessTokenByJTI(ctx context.Context, accessJti string) 
 	return &i, err
 }
 
+const revokeSessionByID = `-- name: RevokeSessionByID :one
+UPDATE session
+   SET access_status = 'revoked', refresh_status = 'revoked',
+    updated_at = timezone('utc', now())
+WHERE id = $1
+RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
+`
+
+// RevokeSessionByID
+//
+//	UPDATE session
+//	   SET access_status = 'revoked', refresh_status = 'revoked',
+//	    updated_at = timezone('utc', now())
+//	WHERE id = $1
+//	RETURNING id, user_id, access_token, refresh_token, access_exp, refresh_exp, access_jti, refresh_jti, access_status, refresh_status, ip_address, user_agent, created_at, updated_at
+func (q *Queries) RevokeSessionByID(ctx context.Context, id string) (*Session, error) {
+	row := q.db.QueryRow(ctx, revokeSessionByID, id)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.AccessToken,
+		&i.RefreshToken,
+		&i.AccessExp,
+		&i.RefreshExp,
+		&i.AccessJti,
+		&i.RefreshJti,
+		&i.AccessStatus,
+		&i.RefreshStatus,
+		&i.IpAddress,
+		&i.UserAgent,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
 const rotateTokensByID = `-- name: RotateTokensByID :one
 UPDATE session
 SET access_token = $2, access_jti = $3, access_exp = $4,

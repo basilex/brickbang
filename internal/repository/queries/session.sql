@@ -35,3 +35,10 @@ RETURNING *;
 UPDATE session
    SET access_status = 'revoked', updated_at = timezone('utc', now())
  WHERE access_jti = $1 RETURNING *;
+
+-- name: RevokeSessionByID :one
+UPDATE session
+   SET access_status = 'revoked', refresh_status = 'revoked',
+    updated_at = timezone('utc', now())
+WHERE id = $1
+RETURNING *;

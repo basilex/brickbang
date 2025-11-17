@@ -13,8 +13,9 @@ SELECT count(*) FROM currency;
 SELECT *
   FROM currency c
  ORDER BY
-    CASE WHEN @sql_order = 'asc' THEN name END ASC,
-    CASE WHEN @sql_order = 'desc' THEN name END DESC
+  CASE WHEN @sql_order = 'asc' THEN name END ASC,
+  CASE WHEN @sql_order = 'desc' THEN name END DESC,
+    name ASC
  LIMIT @sql_limit OFFSET @sql_offset;
 
 -- name: GetCurrencyByID :one
@@ -55,6 +56,7 @@ SELECT cr.id,
   LEFT JOIN country cn ON cc.country_id = cn.id
  GROUP BY cr.id, cr.name
  ORDER BY
-    CASE WHEN @sql_order = 'asc' THEN cr.name END ASC,
-    CASE WHEN @sql_order = 'desc' THEN cr.name END DESC
+  CASE WHEN @sql_order = 'asc' THEN cr.name END ASC,
+  CASE WHEN @sql_order = 'desc' THEN cr.name END DESC,
+    cr.name ASC
  LIMIT @sql_limit OFFSET @sql_offset;

@@ -108,8 +108,9 @@ const listCountries = `-- name: ListCountries :many
 SELECT id, name, iso2, iso3, num_code, created_at, updated_at
   FROM country c
  ORDER BY
-    CASE WHEN $1 = 'asc' THEN name END ASC,
-    CASE WHEN $1 = 'desc' THEN name END DESC
+  CASE WHEN $1 = 'asc' THEN name END ASC,
+  CASE WHEN $1 = 'desc' THEN name END DESC,
+    name ASC
  LIMIT $3 OFFSET $2
 `
 
@@ -124,8 +125,9 @@ type ListCountriesParams struct {
 //	SELECT id, name, iso2, iso3, num_code, created_at, updated_at
 //	  FROM country c
 //	 ORDER BY
-//	    CASE WHEN $1 = 'asc' THEN name END ASC,
-//	    CASE WHEN $1 = 'desc' THEN name END DESC
+//	  CASE WHEN $1 = 'asc' THEN name END ASC,
+//	  CASE WHEN $1 = 'desc' THEN name END DESC,
+//	    name ASC
 //	 LIMIT $3 OFFSET $2
 func (q *Queries) ListCountries(ctx context.Context, arg *ListCountriesParams) ([]*Country, error) {
 	rows, err := q.db.Query(ctx, listCountries, arg.SqlOrder, arg.SqlOffset, arg.SqlLimit)
@@ -181,8 +183,8 @@ SELECT cn.id,
   LEFT JOIN currency cr ON cc.currency_id = cr.id
  GROUP BY cn.id, cn.name
  ORDER BY
-    CASE WHEN $1 = 'asc' THEN cn.name END ASC,
-    CASE WHEN $1 = 'desc' THEN cn.name END DESC
+  CASE WHEN $1 = 'asc' THEN cn.name END ASC,
+  CASE WHEN $1 = 'desc' THEN cn.name END DESC
  LIMIT  $3 OFFSET $2
 `
 
@@ -230,8 +232,8 @@ type ListCountriesWithCurrenciesRow struct {
 //	  LEFT JOIN currency cr ON cc.currency_id = cr.id
 //	 GROUP BY cn.id, cn.name
 //	 ORDER BY
-//	    CASE WHEN $1 = 'asc' THEN cn.name END ASC,
-//	    CASE WHEN $1 = 'desc' THEN cn.name END DESC
+//	  CASE WHEN $1 = 'asc' THEN cn.name END ASC,
+//	  CASE WHEN $1 = 'desc' THEN cn.name END DESC
 //	 LIMIT  $3 OFFSET $2
 func (q *Queries) ListCountriesWithCurrencies(ctx context.Context, arg *ListCountriesWithCurrenciesParams) ([]*ListCountriesWithCurrenciesRow, error) {
 	rows, err := q.db.Query(ctx, listCountriesWithCurrencies, arg.SqlOrder, arg.SqlOffset, arg.SqlLimit)

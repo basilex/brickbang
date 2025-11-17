@@ -64,9 +64,7 @@ func (rcv *Registrar) WithAdmin(prefix string) *Registrar {
 	return rcv.WithGroup(prefix+"/admin", rcv.authMiddleware, rcv.rbacMiddleware)
 }
 
-// ============================================
 // ========== ROUTE REGISTRATION ==============
-// ============================================
 
 func (rcv *Registrar) RegisterAll() *Registrar {
 
@@ -77,6 +75,7 @@ func (rcv *Registrar) RegisterAll() *Registrar {
 	// PRIVATE
 	rcv.WithPrivate("/auth").registerAuthPrivateRoutes()
 	rcv.WithPrivate("/roles").registerRolesRoutes()
+	rcv.WithPrivate("/countries").registerCountryRoutes()
 
 	// ADMIN
 	rcv.WithAdmin("/admin").registerSystemAdminRoutes()
@@ -84,11 +83,7 @@ func (rcv *Registrar) RegisterAll() *Registrar {
 	return rcv
 }
 
-// ============================================
 // =============== MODULES =====================
-// ============================================
-
-// Example module registrations — replace with your actual ones
 
 func (rcv *Registrar) registerAuxRoutes() *Registrar {
 	rcv.container.AuxModule.Controller().RegisterRoutes(rcv.current)
@@ -107,6 +102,11 @@ func (rcv *Registrar) registerAuthPrivateRoutes() *Registrar {
 
 func (rcv *Registrar) registerRolesRoutes() *Registrar {
 	rcv.container.RoleModule.Controller().RegisterRoutes(rcv.current)
+	return rcv
+}
+
+func (rcv *Registrar) registerCountryRoutes() *Registrar {
+	rcv.container.CountryModule.Controller().RegisterRoutes(rcv.current)
 	return rcv
 }
 

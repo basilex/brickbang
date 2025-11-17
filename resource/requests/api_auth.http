@@ -1,6 +1,6 @@
 @baseUrl = http://localhost:8081/api/v1/auth
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJkNGNwcmpxOGhtcmxpaWhyNjZvZyIsImp0aSI6ImQ0Y3RxaXE1bWpqMmhxOWZycnIwIiwic2lkIjoiZDRjdHFhaThobXJqMjA5cjY2czAiLCJleHAiOjE3NjMzMDM2MzEsImlhdCI6MTc2MzMwMjczMX0.3dzh-uOOE5diuDHgr1FFr4tXbE0ubQCLVDaX4rxVgSY
-@refreshToken = 084b0e18cb3c21770b908e798a662f58e9a958912125d5549e4a5549a19033ef
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJkNGRkb2lhOGhtcm4ybzRqZGppMCIsImp0aSI6ImQ0ZGUxNmk1bWpqMHBnMzNhbmMwIiwic2lkIjoiZDRkZTE2aThobXJncWdramRqajAiLCJleHAiOjE3NjMzNzAwMTQsImlhdCI6MTc2MzM2OTExNH0.Gy-6acfsWM52fp18wPPiC3Cj7ZjMZrjcX76Ha_VPKGE
+@refreshToken = b5e994b53e8a204db72ef7188248c7f59cd35b6e1623aa2ce71ab749731331c0
 @userID = d4cprjq8hmrliihr66og
 @sessionID = d4cto7i8hmrj209r66rg
 
@@ -10,7 +10,7 @@ POST {{baseUrl}}/register
 Content-Type: application/json
 
 {
-  "username": "user15",
+  "username": "user1",
   "password": "passw0rd"
 }
 
@@ -22,7 +22,7 @@ POST {{baseUrl}}/login
 Content-Type: application/json
 
 {
-  "username": "user15",
+  "username": "user1",
   "password": "passw0rd"
 }
 

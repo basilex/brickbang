@@ -104,6 +104,28 @@ func (q *Queries) GetCountryByID(ctx context.Context, id string) (*Country, erro
 	return &i, err
 }
 
+const getCountryByName = `-- name: GetCountryByName :one
+SELECT id, name, iso2, iso3, num_code, created_at, updated_at FROM country WHERE name = $1
+`
+
+// GetCountryByName
+//
+//	SELECT id, name, iso2, iso3, num_code, created_at, updated_at FROM country WHERE name = $1
+func (q *Queries) GetCountryByName(ctx context.Context, name string) (*Country, error) {
+	row := q.db.QueryRow(ctx, getCountryByName, name)
+	var i Country
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Iso2,
+		&i.Iso3,
+		&i.NumCode,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
 const listCountries = `-- name: ListCountries :many
 SELECT id, name, iso2, iso3, num_code, created_at, updated_at
   FROM country c

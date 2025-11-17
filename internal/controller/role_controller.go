@@ -22,21 +22,21 @@ func NewRoleController(svc service.IRoleService) IRoleController {
 	return &RoleController{svc: svc}
 }
 
-func (rc *RoleController) RegisterRoutes(router fiber.Router) {
-	router.Get("/", rc.List)
-	router.Get("/:id", rc.Get)
-	router.Post("/", rc.Create)
-	router.Put("/:id", rc.Update)
-	router.Delete("/:id", rc.Delete)
+func (rcv *RoleController) RegisterRoutes(router fiber.Router) {
+	router.Get("/", rcv.List)
+	router.Get("/:id", rcv.Get)
+	router.Post("/", rcv.Create)
+	router.Put("/:id", rcv.Update)
+	router.Delete("/:id", rcv.Delete)
 }
 
 // List roles with pagination
-func (rc *RoleController) List(ctx *fiber.Ctx) error {
+func (rcv *RoleController) List(ctx *fiber.Ctx) error {
 	limit, _ := utility.ParseIntQuery(ctx, "limit", 20)
 	offset, _ := utility.ParseIntQuery(ctx, "offset", 0)
 	order := ctx.Query("order", "id asc")
 
-	roles, err := rc.svc.List(ctx.Context(), order, int32(limit), int32(offset))
+	roles, err := rcv.svc.List(ctx.Context(), order, int32(limit), int32(offset))
 	if err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
@@ -56,13 +56,13 @@ func (rc *RoleController) List(ctx *fiber.Ctx) error {
 }
 
 // Get role by ID
-func (rc *RoleController) Get(ctx *fiber.Ctx) error {
+func (rcv *RoleController) Get(ctx *fiber.Ctx) error {
 	id, err := utility.ParseID(ctx, "id")
 	if err != nil {
 		return err
 	}
 
-	role, err := rc.svc.GetByID(ctx.Context(), id)
+	role, err := rcv.svc.GetByID(ctx.Context(), id)
 	if err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusNotFound, errors.New("role not found"))
 	}
@@ -76,14 +76,14 @@ func (rc *RoleController) Get(ctx *fiber.Ctx) error {
 }
 
 // Create new role
-func (rc *RoleController) Create(ctx *fiber.Ctx) error {
+func (rcv *RoleController) Create(ctx *fiber.Ctx) error {
 	var req transfer.RoleCreateRequest
 
 	if err := utility.ValidateBody(ctx, &req); err != nil {
 		return err
 	}
 
-	role, err := rc.svc.Create(ctx.Context(), req.Name)
+	role, err := rcv.svc.Create(ctx.Context(), req.Name)
 	if err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
@@ -97,7 +97,7 @@ func (rc *RoleController) Create(ctx *fiber.Ctx) error {
 }
 
 // Update role by ID
-func (rc *RoleController) Update(ctx *fiber.Ctx) error {
+func (rcv *RoleController) Update(ctx *fiber.Ctx) error {
 	id, err := utility.ParseID(ctx, "id")
 	if err != nil {
 		return err
@@ -109,7 +109,7 @@ func (rc *RoleController) Update(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	role, err := rc.svc.UpdateByID(ctx.Context(), id, req.Name)
+	role, err := rcv.svc.UpdateByID(ctx.Context(), id, req.Name)
 	if err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
@@ -123,13 +123,13 @@ func (rc *RoleController) Update(ctx *fiber.Ctx) error {
 }
 
 // Delete role by ID
-func (rc *RoleController) Delete(ctx *fiber.Ctx) error {
+func (rcv *RoleController) Delete(ctx *fiber.Ctx) error {
 	id, err := utility.ParseID(ctx, "id")
 	if err != nil {
 		return err
 	}
 
-	_, err = rc.svc.DeleteByID(ctx.Context(), id)
+	_, err = rcv.svc.DeleteByID(ctx.Context(), id)
 	if err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}

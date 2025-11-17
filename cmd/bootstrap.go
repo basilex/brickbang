@@ -58,6 +58,11 @@ func Run() {
 		}))
 	}
 
+	// Default logger middleware
+	logger := slog.Default()
+
+	app.Use(middleware.RequestLogger(logger))
+
 	// Unified response middleware
 	app.Use(middleware.UnifiedResponse())
 

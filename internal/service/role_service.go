@@ -26,13 +26,13 @@ func NewRoleService(q *dbs.Queries) IRoleService {
 }
 
 // Create a new role
-func (s *roleService) Create(ctx context.Context, name string) (*dbs.Role, error) {
-	return s.queries.CreateRole(ctx, name)
+func (rcv *roleService) Create(ctx context.Context, name string) (*dbs.Role, error) {
+	return rcv.queries.CreateRole(ctx, name)
 }
 
 // Get a role by its ID
-func (s *roleService) GetByID(ctx context.Context, id string) (*dbs.Role, error) {
-	role, err := s.queries.GetRoleByID(ctx, id)
+func (rcv *roleService) GetByID(ctx context.Context, id string) (*dbs.Role, error) {
+	role, err := rcv.queries.GetRoleByID(ctx, id)
 	if err != nil {
 		return nil, errors.New("role not found")
 	}
@@ -40,8 +40,8 @@ func (s *roleService) GetByID(ctx context.Context, id string) (*dbs.Role, error)
 }
 
 // Get a role by its name
-func (s *roleService) GetByName(ctx context.Context, name string) (*dbs.Role, error) {
-	role, err := s.queries.GetRoleByName(ctx, name)
+func (rcv *roleService) GetByName(ctx context.Context, name string) (*dbs.Role, error) {
+	role, err := rcv.queries.GetRoleByName(ctx, name)
 	if err != nil {
 		return nil, errors.New("role not found")
 	}
@@ -49,34 +49,34 @@ func (s *roleService) GetByName(ctx context.Context, name string) (*dbs.Role, er
 }
 
 // Count total number of roles
-func (s *roleService) Count(ctx context.Context) (int64, error) {
-	return s.queries.CountRoles(ctx)
+func (rcv *roleService) Count(ctx context.Context) (int64, error) {
+	return rcv.queries.CountRoles(ctx)
 }
 
 // List roles with pagination and order
-func (s *roleService) List(ctx context.Context, order string, limit, offset int32) ([]*dbs.Role, error) {
+func (rcv *roleService) List(ctx context.Context, order string, limit, offset int32) ([]*dbs.Role, error) {
 	params := &dbs.ListRolesParams{
 		SqlOrder:  order,
 		SqlLimit:  limit,
 		SqlOffset: offset,
 	}
-	return s.queries.ListRoles(ctx, params)
+	return rcv.queries.ListRoles(ctx, params)
 }
 
 // Update role name by ID
-func (s *roleService) UpdateByID(ctx context.Context, id string, name string) (*dbs.Role, error) {
+func (rcv *roleService) UpdateByID(ctx context.Context, id string, name string) (*dbs.Role, error) {
 	params := &dbs.UpdateRoleByIDParams{
 		ID:   id,
 		Name: name,
 	}
-	return s.queries.UpdateRoleByID(ctx, params)
+	return rcv.queries.UpdateRoleByID(ctx, params)
 }
 
 // Delete role by ID
-func (s *roleService) DeleteByID(ctx context.Context, id string) (string, error) {
-	role, err := s.queries.DeleteRoleByID(ctx, id)
+func (rcv *roleService) DeleteByID(ctx context.Context, id string) (string, error) {
+	id, err := rcv.queries.DeleteRoleByID(ctx, id)
 	if err != nil {
 		return "", err
 	}
-	return role.ID, nil
+	return id, nil
 }

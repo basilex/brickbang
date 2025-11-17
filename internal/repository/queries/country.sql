@@ -9,6 +9,12 @@ RETURNING id, name, iso2, iso3, num_code, created_at, updated_at;
 -- name: CountCountries :one
 SELECT count(*) FROM country;
 
+-- name: GetCountryByID :one
+SELECT * FROM country c WHERE c.id = @id;
+
+-- name: GetCountryByName :one
+SELECT * FROM country WHERE name = @name;
+
 -- name: ListCountries :many
 SELECT *
   FROM country c
@@ -17,9 +23,6 @@ SELECT *
   CASE WHEN @sql_order = 'desc' THEN name END DESC,
     name ASC
  LIMIT @sql_limit OFFSET @sql_offset;
-
--- name: GetCountryByID :one
-SELECT * FROM country c WHERE c.id = @id;
 
 -- name: UpdateCountryByID :one
 UPDATE country

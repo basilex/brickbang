@@ -21,10 +21,10 @@ create trigger users_updated_at
 	before update on users for each row
 	execute procedure trigger_updated_at();
 
-insert into users(username, password, is_checked) values
-    ('sys', crypt('passw!rd', gen_salt('bf', 12)), true),
-    ('admin', crypt('passw=rd', gen_salt('bf', 12)), true),
-    ('basilex', crypt('passw0rd', gen_salt('bf', 12)), true);
+insert into users(username, password, is_checked, checked_at) values
+    ('sys', crypt('passw!rd', gen_salt('bf', 12)), true, timezone('utc', now())),
+    ('admin', crypt('passw=rd', gen_salt('bf', 12)), true, timezone('utc', now())),
+    ('basilex', crypt('passw0rd', gen_salt('bf', 12)), true, timezone('utc', now()));
 --
 -- Entity roles
 --

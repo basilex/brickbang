@@ -70,16 +70,12 @@ func (q *Queries) CreateCountry(ctx context.Context, arg *CreateCountryParams) (
 }
 
 const deleteCountryByID = `-- name: DeleteCountryByID :one
-DELETE FROM country c
- WHERE c.id = $1
- RETURNING id
+DELETE FROM country c WHERE c.id = $1 RETURNING id
 `
 
 // DeleteCountryByID
 //
-//	DELETE FROM country c
-//	 WHERE c.id = $1
-//	 RETURNING id
+//	DELETE FROM country c WHERE c.id = $1 RETURNING id
 func (q *Queries) DeleteCountryByID(ctx context.Context, id string) (string, error) {
 	row := q.db.QueryRow(ctx, deleteCountryByID, id)
 	err := row.Scan(&id)
@@ -87,16 +83,12 @@ func (q *Queries) DeleteCountryByID(ctx context.Context, id string) (string, err
 }
 
 const getCountryByID = `-- name: GetCountryByID :one
-SELECT id, name, iso2, iso3, num_code, created_at, updated_at
-  FROM country c
- WHERE c.id = $1
+SELECT id, name, iso2, iso3, num_code, created_at, updated_at FROM country c WHERE c.id = $1
 `
 
 // GetCountryByID
 //
-//	SELECT id, name, iso2, iso3, num_code, created_at, updated_at
-//	  FROM country c
-//	 WHERE c.id = $1
+//	SELECT id, name, iso2, iso3, num_code, created_at, updated_at FROM country c WHERE c.id = $1
 func (q *Queries) GetCountryByID(ctx context.Context, id string) (*Country, error) {
 	row := q.db.QueryRow(ctx, getCountryByID, id)
 	var i Country
@@ -115,21 +107,25 @@ func (q *Queries) GetCountryByID(ctx context.Context, id string) (*Country, erro
 const listCountries = `-- name: ListCountries :many
 SELECT id, name, iso2, iso3, num_code, created_at, updated_at
   FROM country c
- ORDER BY $1::text
+ ORDER BY
+    CASE WHEN $1 = 'asc' THEN name END ASC,
+    CASE WHEN $1 = 'desc' THEN name END DESC
  LIMIT $3 OFFSET $2
 `
 
 type ListCountriesParams struct {
-	SqlOrder  string `json:"sql_order"`
-	SqlOffset int32  `json:"sql_offset"`
-	SqlLimit  int32  `json:"sql_limit"`
+	SqlOrder  interface{} `json:"sql_order"`
+	SqlOffset int32       `json:"sql_offset"`
+	SqlLimit  int32       `json:"sql_limit"`
 }
 
 // ListCountries
 //
 //	SELECT id, name, iso2, iso3, num_code, created_at, updated_at
 //	  FROM country c
-//	 ORDER BY $1::text
+//	 ORDER BY
+//	    CASE WHEN $1 = 'asc' THEN name END ASC,
+//	    CASE WHEN $1 = 'desc' THEN name END DESC
 //	 LIMIT $3 OFFSET $2
 func (q *Queries) ListCountries(ctx context.Context, arg *ListCountriesParams) ([]*Country, error) {
 	rows, err := q.db.Query(ctx, listCountries, arg.SqlOrder, arg.SqlOffset, arg.SqlLimit)
@@ -167,31 +163,33 @@ SELECT cn.id,
        cn.num_code,
        cn.created_at,
        cn.updated_at,
-       COALESCE(
-         JSON_AGG(
-           JSONB_BUILD_OBJECT(
-             'id',         cr.id,
-             'name',       cr.name,
-             'code',       cr.code,
-             'num_code',   cr.num_code,
-             'symbol',     cr.symbol,
-             'created_at', cr.created_at,
-             'updated_at', cr.updated_at
-           )
-         ) FILTER (WHERE cr.id IS NOT NULL), '[]'
-       ) AS currencies
+  COALESCE(
+    JSON_AGG(
+      JSONB_BUILD_OBJECT(
+        'id',         cr.id,
+        'name',       cr.name,
+        'code',       cr.code,
+        'num_code',   cr.num_code,
+        'symbol',     cr.symbol,
+        'created_at', cr.created_at,
+        'updated_at', cr.updated_at
+      )
+    ) FILTER (WHERE cr.id IS NOT NULL), '[]'
+  ) AS currencies
   FROM country cn
   LEFT JOIN country_currency cc ON cn.id = cc.country_id
   LEFT JOIN currency cr ON cc.currency_id = cr.id
  GROUP BY cn.id, cn.name
- ORDER BY $1::text
+ ORDER BY
+    CASE WHEN $1 = 'asc' THEN cn.name END ASC,
+    CASE WHEN $1 = 'desc' THEN cn.name END DESC
  LIMIT  $3 OFFSET $2
 `
 
 type ListCountriesWithCurrenciesParams struct {
-	SqlOrder  string `json:"sql_order"`
-	SqlOffset int32  `json:"sql_offset"`
-	SqlLimit  int32  `json:"sql_limit"`
+	SqlOrder  interface{} `json:"sql_order"`
+	SqlOffset int32       `json:"sql_offset"`
+	SqlLimit  int32       `json:"sql_limit"`
 }
 
 type ListCountriesWithCurrenciesRow struct {
@@ -214,24 +212,26 @@ type ListCountriesWithCurrenciesRow struct {
 //	       cn.num_code,
 //	       cn.created_at,
 //	       cn.updated_at,
-//	       COALESCE(
-//	         JSON_AGG(
-//	           JSONB_BUILD_OBJECT(
-//	             'id',         cr.id,
-//	             'name',       cr.name,
-//	             'code',       cr.code,
-//	             'num_code',   cr.num_code,
-//	             'symbol',     cr.symbol,
-//	             'created_at', cr.created_at,
-//	             'updated_at', cr.updated_at
-//	           )
-//	         ) FILTER (WHERE cr.id IS NOT NULL), '[]'
-//	       ) AS currencies
+//	  COALESCE(
+//	    JSON_AGG(
+//	      JSONB_BUILD_OBJECT(
+//	        'id',         cr.id,
+//	        'name',       cr.name,
+//	        'code',       cr.code,
+//	        'num_code',   cr.num_code,
+//	        'symbol',     cr.symbol,
+//	        'created_at', cr.created_at,
+//	        'updated_at', cr.updated_at
+//	      )
+//	    ) FILTER (WHERE cr.id IS NOT NULL), '[]'
+//	  ) AS currencies
 //	  FROM country cn
 //	  LEFT JOIN country_currency cc ON cn.id = cc.country_id
 //	  LEFT JOIN currency cr ON cc.currency_id = cr.id
 //	 GROUP BY cn.id, cn.name
-//	 ORDER BY $1::text
+//	 ORDER BY
+//	    CASE WHEN $1 = 'asc' THEN cn.name END ASC,
+//	    CASE WHEN $1 = 'desc' THEN cn.name END DESC
 //	 LIMIT  $3 OFFSET $2
 func (q *Queries) ListCountriesWithCurrencies(ctx context.Context, arg *ListCountriesWithCurrenciesParams) ([]*ListCountriesWithCurrenciesRow, error) {
 	rows, err := q.db.Query(ctx, listCountriesWithCurrencies, arg.SqlOrder, arg.SqlOffset, arg.SqlLimit)

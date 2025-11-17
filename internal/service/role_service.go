@@ -56,9 +56,9 @@ func (s *roleService) Count(ctx context.Context) (int64, error) {
 // List roles with pagination and order
 func (s *roleService) List(ctx context.Context, order string, limit, offset int32) ([]*dbs.Role, error) {
 	params := &dbs.ListRolesParams{
-		Sqlorder:  order,
-		Sqllimit:  limit,
-		Sqloffset: offset,
+		SqlOrder:  order,
+		SqlLimit:  limit,
+		SqlOffset: offset,
 	}
 	return s.queries.ListRoles(ctx, params)
 }

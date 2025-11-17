@@ -11,146 +11,46 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const currencyCount = `-- name: CurrencyCount :one
-select count(*) from currency
+const countCurrencies = `-- name: CountCurrencies :one
+SELECT count(*) FROM currency
 `
 
-// CurrencyCount
+// CountCurrencies
 //
-//	select count(*) from currency
-func (q *Queries) CurrencyCount(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, currencyCount)
+//	SELECT count(*) FROM currency
+func (q *Queries) CountCurrencies(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countCurrencies)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
-const currencyCountrySelect = `-- name: CurrencyCountrySelect :many
-select cr.id, cr.name, cr.code, cr.num_code, cr.symbol, cr.created_at, cr.updated_at,
-  coalesce(
-    json_agg(
-      jsonb_build_object(
-        'id',         cn.id,
-        'name',       cn.name,
-        'iso2',       cn.iso2,
-        'iso3',       cn.iso3,
-        'num_code',   cn.num_code, 
-        'created_at', cn.created_at,
-        'updated_at', cn.updated_at
-      )
-    ) filter (where cn.id is not null), '[]') as countries
-  from currency cr
-  left join country_currency cc on cr.id = cc.currency_id
-  left join country cn ON cc.country_id = cn.id
- group by cr.id, cr.name
- order by $1::text
- limit  $3 offset $2
-`
-
-type CurrencyCountrySelectParams struct {
-	SqlOrder  string `json:"sql_order"`
-	SqlOffset int32  `json:"sql_offset"`
-	SqlLimit  int32  `json:"sql_limit"`
-}
-
-type CurrencyCountrySelectRow struct {
-	ID        string           `json:"id"`
-	Name      string           `json:"name"`
-	Code      string           `json:"code"`
-	NumCode   int16            `json:"num_code"`
-	Symbol    string           `json:"symbol"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
-	Countries interface{}      `json:"countries"`
-}
-
-// CurrencyCountrySelect
-//
-//	select cr.id, cr.name, cr.code, cr.num_code, cr.symbol, cr.created_at, cr.updated_at,
-//	  coalesce(
-//	    json_agg(
-//	      jsonb_build_object(
-//	        'id',         cn.id,
-//	        'name',       cn.name,
-//	        'iso2',       cn.iso2,
-//	        'iso3',       cn.iso3,
-//	        'num_code',   cn.num_code,
-//	        'created_at', cn.created_at,
-//	        'updated_at', cn.updated_at
-//	      )
-//	    ) filter (where cn.id is not null), '[]') as countries
-//	  from currency cr
-//	  left join country_currency cc on cr.id = cc.currency_id
-//	  left join country cn ON cc.country_id = cn.id
-//	 group by cr.id, cr.name
-//	 order by $1::text
-//	 limit  $3 offset $2
-func (q *Queries) CurrencyCountrySelect(ctx context.Context, arg *CurrencyCountrySelectParams) ([]*CurrencyCountrySelectRow, error) {
-	rows, err := q.db.Query(ctx, currencyCountrySelect, arg.SqlOrder, arg.SqlOffset, arg.SqlLimit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []*CurrencyCountrySelectRow
-	for rows.Next() {
-		var i CurrencyCountrySelectRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Code,
-			&i.NumCode,
-			&i.Symbol,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.Countries,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, &i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const currencyDeleteByID = `-- name: CurrencyDeleteByID :one
-delete from currency c where c.id = $1 returning id
-`
-
-// CurrencyDeleteByID
-//
-//	delete from currency c where c.id = $1 returning id
-func (q *Queries) CurrencyDeleteByID(ctx context.Context, id string) (string, error) {
-	row := q.db.QueryRow(ctx, currencyDeleteByID, id)
-	err := row.Scan(&id)
-	return id, err
-}
-
-const currencyNew = `-- name: CurrencyNew :one
-insert into currency (
+const createCurrency = `-- name: CreateCurrency :one
+INSERT INTO currency (
 	name, code, num_code, symbol
-) values (
+) VALUES (
 	$1, $2, $3, $4
-) returning id, name, code, num_code, symbol, created_at, updated_at
+)
+RETURNING id, name, code, num_code, symbol, created_at, updated_at
 `
 
-type CurrencyNewParams struct {
+type CreateCurrencyParams struct {
 	Name    string `json:"name"`
 	Code    string `json:"code"`
 	NumCode int16  `json:"num_code"`
 	Symbol  string `json:"symbol"`
 }
 
-// CurrencyNew
+// CreateCurrency
 //
-//	insert into currency (
+//	INSERT INTO currency (
 //		name, code, num_code, symbol
-//	) values (
+//	) VALUES (
 //		$1, $2, $3, $4
-//	) returning id, name, code, num_code, symbol, created_at, updated_at
-func (q *Queries) CurrencyNew(ctx context.Context, arg *CurrencyNewParams) (*Currency, error) {
-	row := q.db.QueryRow(ctx, currencyNew,
+//	)
+//	RETURNING id, name, code, num_code, symbol, created_at, updated_at
+func (q *Queries) CreateCurrency(ctx context.Context, arg *CreateCurrencyParams) (*Currency, error) {
+	row := q.db.QueryRow(ctx, createCurrency,
 		arg.Name,
 		arg.Code,
 		arg.NumCode,
@@ -169,27 +69,66 @@ func (q *Queries) CurrencyNew(ctx context.Context, arg *CurrencyNewParams) (*Cur
 	return &i, err
 }
 
-const currencySelect = `-- name: CurrencySelect :many
-select id, name, code, num_code, symbol, created_at, updated_at
-  from currency c
- order by $1::text
- limit $3 offset $2
+const deleteCurrencyByID = `-- name: DeleteCurrencyByID :one
+DELETE FROM currency c WHERE c.id = $1 RETURNING id
 `
 
-type CurrencySelectParams struct {
-	SqlOrder  string `json:"sql_order"`
-	SqlOffset int32  `json:"sql_offset"`
-	SqlLimit  int32  `json:"sql_limit"`
+// DeleteCurrencyByID
+//
+//	DELETE FROM currency c WHERE c.id = $1 RETURNING id
+func (q *Queries) DeleteCurrencyByID(ctx context.Context, id string) (string, error) {
+	row := q.db.QueryRow(ctx, deleteCurrencyByID, id)
+	err := row.Scan(&id)
+	return id, err
 }
 
-// CurrencySelect
+const getCurrencyByID = `-- name: GetCurrencyByID :one
+SELECT id, name, code, num_code, symbol, created_at, updated_at FROM currency c WHERE c.id = $1
+`
+
+// GetCurrencyByID
 //
-//	select id, name, code, num_code, symbol, created_at, updated_at
-//	  from currency c
-//	 order by $1::text
-//	 limit $3 offset $2
-func (q *Queries) CurrencySelect(ctx context.Context, arg *CurrencySelectParams) ([]*Currency, error) {
-	rows, err := q.db.Query(ctx, currencySelect, arg.SqlOrder, arg.SqlOffset, arg.SqlLimit)
+//	SELECT id, name, code, num_code, symbol, created_at, updated_at FROM currency c WHERE c.id = $1
+func (q *Queries) GetCurrencyByID(ctx context.Context, id string) (*Currency, error) {
+	row := q.db.QueryRow(ctx, getCurrencyByID, id)
+	var i Currency
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Code,
+		&i.NumCode,
+		&i.Symbol,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const listCurrencies = `-- name: ListCurrencies :many
+SELECT id, name, code, num_code, symbol, created_at, updated_at
+  FROM currency c
+ ORDER BY
+    CASE WHEN $1 = 'asc' THEN name END ASC,
+    CASE WHEN $1 = 'desc' THEN name END DESC
+ LIMIT $3 OFFSET $2
+`
+
+type ListCurrenciesParams struct {
+	SqlOrder  interface{} `json:"sql_order"`
+	SqlOffset int32       `json:"sql_offset"`
+	SqlLimit  int32       `json:"sql_limit"`
+}
+
+// ListCurrencies
+//
+//	SELECT id, name, code, num_code, symbol, created_at, updated_at
+//	  FROM currency c
+//	 ORDER BY
+//	    CASE WHEN $1 = 'asc' THEN name END ASC,
+//	    CASE WHEN $1 = 'desc' THEN name END DESC
+//	 LIMIT $3 OFFSET $2
+func (q *Queries) ListCurrencies(ctx context.Context, arg *ListCurrenciesParams) ([]*Currency, error) {
+	rows, err := q.db.Query(ctx, listCurrencies, arg.SqlOrder, arg.SqlOffset, arg.SqlLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -216,36 +155,121 @@ func (q *Queries) CurrencySelect(ctx context.Context, arg *CurrencySelectParams)
 	return items, nil
 }
 
-const currencySelectByID = `-- name: CurrencySelectByID :one
-select id, name, code, num_code, symbol, created_at, updated_at from currency c where c.id = $1
+const listCurrenciesWithCountries = `-- name: ListCurrenciesWithCountries :many
+SELECT cr.id,
+       cr.name,
+       cr.code,
+       cr.num_code,
+       cr.symbol,
+       cr.created_at,
+       cr.updated_at,
+  COALESCE(
+    JSON_AGG(
+      JSONB_BUILD_OBJECT(
+        'id',         cn.id,
+        'name',       cn.name,
+        'iso2',       cn.iso2,
+        'iso3',       cn.iso3,
+        'num_code',   cn.num_code,
+        'created_at', cn.created_at,
+        'updated_at', cn.updated_at
+      )
+    ) FILTER (WHERE cn.id IS NOT NULL), '[]'
+  ) AS countries
+  FROM currency cr
+  LEFT JOIN country_currency cc ON cr.id = cc.currency_id
+  LEFT JOIN country cn ON cc.country_id = cn.id
+ GROUP BY cr.id, cr.name
+ ORDER BY
+    CASE WHEN $1 = 'asc' THEN cr.name END ASC,
+    CASE WHEN $1 = 'desc' THEN cr.name END DESC
+ LIMIT $3 OFFSET $2
 `
 
-// CurrencySelectByID
-//
-//	select id, name, code, num_code, symbol, created_at, updated_at from currency c where c.id = $1
-func (q *Queries) CurrencySelectByID(ctx context.Context, id string) (*Currency, error) {
-	row := q.db.QueryRow(ctx, currencySelectByID, id)
-	var i Currency
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Code,
-		&i.NumCode,
-		&i.Symbol,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return &i, err
+type ListCurrenciesWithCountriesParams struct {
+	SqlOrder  interface{} `json:"sql_order"`
+	SqlOffset int32       `json:"sql_offset"`
+	SqlLimit  int32       `json:"sql_limit"`
 }
 
-const currencyUpdateByID = `-- name: CurrencyUpdateByID :one
-update currency
-   set name = $1, code = $2, num_code = $3, symbol = $4
- where id = $5
-       returning id, name, code, num_code, symbol, created_at, updated_at
+type ListCurrenciesWithCountriesRow struct {
+	ID        string           `json:"id"`
+	Name      string           `json:"name"`
+	Code      string           `json:"code"`
+	NumCode   int16            `json:"num_code"`
+	Symbol    string           `json:"symbol"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+	Countries interface{}      `json:"countries"`
+}
+
+// ListCurrenciesWithCountries
+//
+//	SELECT cr.id,
+//	       cr.name,
+//	       cr.code,
+//	       cr.num_code,
+//	       cr.symbol,
+//	       cr.created_at,
+//	       cr.updated_at,
+//	  COALESCE(
+//	    JSON_AGG(
+//	      JSONB_BUILD_OBJECT(
+//	        'id',         cn.id,
+//	        'name',       cn.name,
+//	        'iso2',       cn.iso2,
+//	        'iso3',       cn.iso3,
+//	        'num_code',   cn.num_code,
+//	        'created_at', cn.created_at,
+//	        'updated_at', cn.updated_at
+//	      )
+//	    ) FILTER (WHERE cn.id IS NOT NULL), '[]'
+//	  ) AS countries
+//	  FROM currency cr
+//	  LEFT JOIN country_currency cc ON cr.id = cc.currency_id
+//	  LEFT JOIN country cn ON cc.country_id = cn.id
+//	 GROUP BY cr.id, cr.name
+//	 ORDER BY
+//	    CASE WHEN $1 = 'asc' THEN cr.name END ASC,
+//	    CASE WHEN $1 = 'desc' THEN cr.name END DESC
+//	 LIMIT $3 OFFSET $2
+func (q *Queries) ListCurrenciesWithCountries(ctx context.Context, arg *ListCurrenciesWithCountriesParams) ([]*ListCurrenciesWithCountriesRow, error) {
+	rows, err := q.db.Query(ctx, listCurrenciesWithCountries, arg.SqlOrder, arg.SqlOffset, arg.SqlLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*ListCurrenciesWithCountriesRow
+	for rows.Next() {
+		var i ListCurrenciesWithCountriesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Code,
+			&i.NumCode,
+			&i.Symbol,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Countries,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateCurrencyByID = `-- name: UpdateCurrencyByID :one
+UPDATE currency
+   SET name = $1, code = $2, num_code = $3, symbol = $4
+ WHERE id = $5
+       RETURNING id, name, code, num_code, symbol, created_at, updated_at
 `
 
-type CurrencyUpdateByIDParams struct {
+type UpdateCurrencyByIDParams struct {
 	Name    string `json:"name"`
 	Code    string `json:"code"`
 	NumCode int16  `json:"num_code"`
@@ -253,14 +277,14 @@ type CurrencyUpdateByIDParams struct {
 	ID      string `json:"id"`
 }
 
-// CurrencyUpdateByID
+// UpdateCurrencyByID
 //
-//	update currency
-//	   set name = $1, code = $2, num_code = $3, symbol = $4
-//	 where id = $5
-//	       returning id, name, code, num_code, symbol, created_at, updated_at
-func (q *Queries) CurrencyUpdateByID(ctx context.Context, arg *CurrencyUpdateByIDParams) (*Currency, error) {
-	row := q.db.QueryRow(ctx, currencyUpdateByID,
+//	UPDATE currency
+//	   SET name = $1, code = $2, num_code = $3, symbol = $4
+//	 WHERE id = $5
+//	       RETURNING id, name, code, num_code, symbol, created_at, updated_at
+func (q *Queries) UpdateCurrencyByID(ctx context.Context, arg *UpdateCurrencyByIDParams) (*Currency, error) {
+	row := q.db.QueryRow(ctx, updateCurrencyByID,
 		arg.Name,
 		arg.Code,
 		arg.NumCode,

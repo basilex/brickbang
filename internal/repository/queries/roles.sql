@@ -1,39 +1,30 @@
 -- Roles
 
--- Create
 -- name: CreateRole :one
-INSERT INTO roles (name) VALUES ($1)
+INSERT INTO roles (name) VALUES (@name)
 RETURNING *;
 
--- Count
 -- name: CountRoles :one
 SELECT COUNT(*) FROM roles;
 
--- Get by ID
 -- name: GetRoleByID :one
-SELECT * FROM roles WHERE id = $1;
+SELECT * FROM roles WHERE id = @id;
 
--- Get by name
 -- name: GetRoleByName :one
-SELECT * FROM roles WHERE name = $1;
+SELECT * FROM roles WHERE name = @name;
 
--- List with pagination
 -- name: ListRoles :many
 SELECT *
-FROM roles
-ORDER BY
-    CASE WHEN @sqlorder = 'asc' THEN name END ASC,
-    CASE WHEN @sqlorder = 'desc' THEN name END DESC
-LIMIT @sqllimit OFFSET @sqloffset;
+  FROM roles
+ ORDER BY
+    CASE WHEN @sql_order = 'asc' THEN name END ASC,
+    CASE WHEN @sql_order = 'desc' THEN name END DESC
+ LIMIT @sql_limit OFFSET @sql_offset;
 
--- Update
 -- name: UpdateRoleByID :one
 UPDATE roles
-SET name = $2
-WHERE id = $1
-RETURNING *;
+   SET name = @name
+ WHERE id = @id RETURNING *;
 
--- Delete
 -- name: DeleteRoleByID :one
-DELETE FROM roles WHERE id = $1
-RETURNING *;
+DELETE FROM roles WHERE id = @id RETURNING *;

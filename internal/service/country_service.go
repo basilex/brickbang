@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"fmt"
 
 	"brickbang/internal/repository/dbs"
 	"brickbang/internal/transfer"
@@ -40,7 +42,10 @@ func (rcv *countryService) Create(ctx context.Context, req *transfer.CountryCrea
 func (rcv *countryService) GetByID(ctx context.Context, id string) (*dbs.Country, error) {
 	country, err := rcv.queries.GetCountryByID(ctx, id)
 	if err != nil {
-		return nil, errors.New("country not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("country not found")
+		}
+		return nil, fmt.Errorf("failed to get country by ID: %w", err)
 	}
 
 	return country, nil

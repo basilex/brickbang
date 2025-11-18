@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"fmt"
 
 	"brickbang/internal/repository/dbs"
 	"brickbang/internal/transfer"
@@ -40,7 +42,10 @@ func (rcv *currencyService) Create(ctx context.Context, req *transfer.CurrencyCr
 func (rcv *currencyService) GetByID(ctx context.Context, id string) (*dbs.Currency, error) {
 	currency, err := rcv.queries.GetCurrencyByID(ctx, id)
 	if err != nil {
-		return nil, errors.New("currency not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("currency not found")
+		}
+		return nil, fmt.Errorf("failed to get currency by ID: %w", err)
 	}
 
 	return currency, nil

@@ -65,16 +65,16 @@ func (rcv *currencyController) Get(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	country, err := rcv.svc.GetByID(ctx.Context(), id)
+	currency, err := rcv.svc.GetByID(ctx.Context(), id)
 	if err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusNotFound, errors.New("currency not found"))
 	}
 
 	return ctx.JSON(&transfer.CurrencyResponse{
-		ID:        country.ID,
-		Name:      country.Name,
-		CreatedAt: utility.FromPGTimestampToString(country.CreatedAt),
-		UpdatedAt: utility.FromPGTimestampToString(country.UpdatedAt),
+		ID:        currency.ID,
+		Name:      currency.Name,
+		CreatedAt: utility.FromPGTimestampToString(currency.CreatedAt),
+		UpdatedAt: utility.FromPGTimestampToString(currency.UpdatedAt),
 	})
 }
 
@@ -86,19 +86,19 @@ func (rcv *currencyController) Create(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	country, err := rcv.svc.Create(ctx.Context(), &req)
+	currency, err := rcv.svc.Create(ctx.Context(), &req)
 	if err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(&transfer.CurrencyResponse{
-		ID:        country.ID,
-		Name:      country.Name,
-		Code:      country.Code,
-		NumCode:   country.NumCode,
-		Symbol:    country.Symbol,
-		CreatedAt: utility.FromPGTimestampToString(country.CreatedAt),
-		UpdatedAt: utility.FromPGTimestampToString(country.UpdatedAt),
+		ID:        currency.ID,
+		Name:      currency.Name,
+		Code:      currency.Code,
+		NumCode:   currency.NumCode,
+		Symbol:    currency.Symbol,
+		CreatedAt: utility.FromPGTimestampToString(currency.CreatedAt),
+		UpdatedAt: utility.FromPGTimestampToString(currency.UpdatedAt),
 	})
 }
 

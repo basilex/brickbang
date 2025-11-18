@@ -9,28 +9,28 @@ import (
 type IAuxController interface {
 	RegisterRoutes(router fiber.Router)
 }
-type AuxController struct {
+type auxController struct {
 	service service.IAuxService
 }
 
 func NewAuxController(service service.IAuxService) IAuxController {
-	return &AuxController{service: service}
+	return &auxController{service: service}
 }
 
-func (rcv *AuxController) RegisterRoutes(router fiber.Router) {
+func (rcv *auxController) RegisterRoutes(router fiber.Router) {
 	router.Get("/health", rcv.health)
 	router.Get("/uptime", rcv.uptime)
 	router.Get("/metadata", rcv.metadata)
 }
 
-func (rcv *AuxController) health(ctx *fiber.Ctx) error {
+func (rcv *auxController) health(ctx *fiber.Ctx) error {
 	return ctx.JSON(rcv.service.Health())
 }
 
-func (rcv *AuxController) uptime(ctx *fiber.Ctx) error {
+func (rcv *auxController) uptime(ctx *fiber.Ctx) error {
 	return ctx.JSON(rcv.service.Uptime())
 }
 
-func (rcv *AuxController) metadata(ctx *fiber.Ctx) error {
+func (rcv *auxController) metadata(ctx *fiber.Ctx) error {
 	return ctx.JSON(rcv.service.Metadata())
 }

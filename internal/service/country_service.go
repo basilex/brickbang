@@ -42,6 +42,7 @@ func (rcv *countryService) GetByID(ctx context.Context, id string) (*dbs.Country
 	if err != nil {
 		return nil, errors.New("country not found")
 	}
+
 	return country, nil
 }
 
@@ -51,6 +52,7 @@ func (rcv *countryService) GetByName(ctx context.Context, name string) (*dbs.Cou
 	if err != nil {
 		return nil, errors.New("country not found")
 	}
+
 	return country, nil
 }
 
@@ -66,6 +68,7 @@ func (rcv *countryService) List(ctx context.Context, order string, limit, offset
 		SqlLimit:  limit,
 		SqlOffset: offset,
 	}
+
 	return rcv.queries.ListCountries(ctx, params)
 }
 
@@ -78,6 +81,7 @@ func (rcv *countryService) UpdateByID(ctx context.Context, id string, req *trans
 		Iso3:    req.Iso3,
 		NumCode: req.NumCode,
 	}
+
 	return rcv.queries.UpdateCountryByID(ctx, params)
 }
 
@@ -87,5 +91,6 @@ func (rcv *countryService) DeleteByID(ctx context.Context, id string) (string, e
 	if err != nil {
 		return "", err
 	}
+
 	return id, nil
 }

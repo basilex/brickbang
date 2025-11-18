@@ -19,9 +19,7 @@ func NewAuxModule(meta map[string]string) IAuxModule {
 	svc := service.NewAuxService(meta)
 	ctrl := controller.NewAuxController(svc)
 
-	return &auxModule{
-		svc: svc, ctrl: ctrl,
-	}
+	return &auxModule{svc: svc, ctrl: ctrl}
 }
 
 func (rcv *auxModule) Service() service.IAuxService          { return rcv.svc }

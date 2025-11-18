@@ -14,15 +14,15 @@ type ICountryController interface {
 	RegisterRoutes(router fiber.Router)
 }
 
-type CountryController struct {
+type countryController struct {
 	svc service.ICountryService
 }
 
 func NewCountryController(svc service.ICountryService) ICountryController {
-	return &CountryController{svc: svc}
+	return &countryController{svc: svc}
 }
 
-func (rcv *CountryController) RegisterRoutes(router fiber.Router) {
+func (rcv *countryController) RegisterRoutes(router fiber.Router) {
 	router.Get("/", rcv.List)
 	router.Get("/:id", rcv.Get)
 	router.Post("/", rcv.Create)
@@ -31,7 +31,7 @@ func (rcv *CountryController) RegisterRoutes(router fiber.Router) {
 }
 
 // List countries with pagination
-func (rcv *CountryController) List(ctx *fiber.Ctx) error {
+func (rcv *countryController) List(ctx *fiber.Ctx) error {
 	limit, _ := utility.ParseIntQuery(ctx, "limit", 20)
 	offset, _ := utility.ParseIntQuery(ctx, "offset", 0)
 	order := ctx.Query("order", "id asc")
@@ -59,7 +59,7 @@ func (rcv *CountryController) List(ctx *fiber.Ctx) error {
 }
 
 // Get country by ID
-func (rcv *CountryController) Get(ctx *fiber.Ctx) error {
+func (rcv *countryController) Get(ctx *fiber.Ctx) error {
 	id, err := utility.ParseID(ctx, "id")
 	if err != nil {
 		return err
@@ -70,16 +70,19 @@ func (rcv *CountryController) Get(ctx *fiber.Ctx) error {
 		return utility.RespondWithError(ctx, fiber.StatusNotFound, errors.New("country not found"))
 	}
 
-	return ctx.JSON(&transfer.RoleResponse{
+	return ctx.JSON(&transfer.CountryResponse{
 		ID:        country.ID,
 		Name:      country.Name,
+		Iso2:      country.Iso2,
+		Iso3:      country.Iso3,
+		NumCode:   country.NumCode,
 		CreatedAt: utility.FromPGTimestampToString(country.CreatedAt),
 		UpdatedAt: utility.FromPGTimestampToString(country.UpdatedAt),
 	})
 }
 
 // Create new country
-func (rcv *CountryController) Create(ctx *fiber.Ctx) error {
+func (rcv *countryController) Create(ctx *fiber.Ctx) error {
 	var req transfer.CountryCreateRequest
 
 	if err := utility.ValidateBody(ctx, &req); err != nil {
@@ -94,13 +97,16 @@ func (rcv *CountryController) Create(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusCreated).JSON(&transfer.CountryResponse{
 		ID:        country.ID,
 		Name:      country.Name,
+		Iso2:      country.Iso2,
+		Iso3:      country.Iso3,
+		NumCode:   country.NumCode,
 		CreatedAt: utility.FromPGTimestampToString(country.CreatedAt),
 		UpdatedAt: utility.FromPGTimestampToString(country.UpdatedAt),
 	})
 }
 
 // Update country by ID
-func (rcv *CountryController) Update(ctx *fiber.Ctx) error {
+func (rcv *countryController) Update(ctx *fiber.Ctx) error {
 	id, err := utility.ParseID(ctx, "id")
 	if err != nil {
 		return err
@@ -129,7 +135,7 @@ func (rcv *CountryController) Update(ctx *fiber.Ctx) error {
 }
 
 // Delete country by ID
-func (rcv *CountryController) Delete(ctx *fiber.Ctx) error {
+func (rcv *countryController) Delete(ctx *fiber.Ctx) error {
 	id, err := utility.ParseID(ctx, "id")
 	if err != nil {
 		return err

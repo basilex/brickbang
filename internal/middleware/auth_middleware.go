@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"slices"
 	"strings"
 	"time"
 
@@ -24,10 +25,8 @@ func NewAuthMiddleware(blacklist service.IBlacklistService) fiber.Handler {
 		method := c.Method()
 
 		if methods, exists := publicRoutes[path]; exists {
-			for _, m := range methods {
-				if m == method {
-					return c.Next()
-				}
+			if slices.Contains(methods, method) {
+				return c.Next()
 			}
 		}
 
@@ -57,6 +56,7 @@ func NewAuthMiddleware(blacklist service.IBlacklistService) fiber.Handler {
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
+
 		if isBlocked {
 			return fiber.NewError(fiber.StatusUnauthorized, "token revoked")
 		}

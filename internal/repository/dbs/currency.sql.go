@@ -104,6 +104,28 @@ func (q *Queries) GetCurrencyByID(ctx context.Context, id string) (*Currency, er
 	return &i, err
 }
 
+const getCurrencyByName = `-- name: GetCurrencyByName :one
+SELECT id, name, code, num_code, symbol, created_at, updated_at FROM currency c WHERE c.name = $1
+`
+
+// GetCurrencyByName
+//
+//	SELECT id, name, code, num_code, symbol, created_at, updated_at FROM currency c WHERE c.name = $1
+func (q *Queries) GetCurrencyByName(ctx context.Context, name string) (*Currency, error) {
+	row := q.db.QueryRow(ctx, getCurrencyByName, name)
+	var i Currency
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Code,
+		&i.NumCode,
+		&i.Symbol,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
 const listCurrencies = `-- name: ListCurrencies :many
 SELECT id, name, code, num_code, symbol, created_at, updated_at
   FROM currency c
@@ -268,7 +290,10 @@ func (q *Queries) ListCurrenciesWithCountries(ctx context.Context, arg *ListCurr
 
 const updateCurrencyByID = `-- name: UpdateCurrencyByID :one
 UPDATE currency
-   SET name = $1, code = $2, num_code = $3, symbol = $4
+   SET name = $1,
+       code = $2,
+       num_code = $3,
+       symbol = $4
  WHERE id = $5
        RETURNING id, name, code, num_code, symbol, created_at, updated_at
 `
@@ -284,7 +309,10 @@ type UpdateCurrencyByIDParams struct {
 // UpdateCurrencyByID
 //
 //	UPDATE currency
-//	   SET name = $1, code = $2, num_code = $3, symbol = $4
+//	   SET name = $1,
+//	       code = $2,
+//	       num_code = $3,
+//	       symbol = $4
 //	 WHERE id = $5
 //	       RETURNING id, name, code, num_code, symbol, created_at, updated_at
 func (q *Queries) UpdateCurrencyByID(ctx context.Context, arg *UpdateCurrencyByIDParams) (*Currency, error) {

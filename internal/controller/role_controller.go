@@ -14,15 +14,15 @@ type IRoleController interface {
 	RegisterRoutes(router fiber.Router)
 }
 
-type RoleController struct {
+type roleController struct {
 	svc service.IRoleService
 }
 
 func NewRoleController(svc service.IRoleService) IRoleController {
-	return &RoleController{svc: svc}
+	return &roleController{svc: svc}
 }
 
-func (rcv *RoleController) RegisterRoutes(router fiber.Router) {
+func (rcv *roleController) RegisterRoutes(router fiber.Router) {
 	router.Get("/", rcv.List)
 	router.Get("/:id", rcv.Get)
 	router.Post("/", rcv.Create)
@@ -31,7 +31,7 @@ func (rcv *RoleController) RegisterRoutes(router fiber.Router) {
 }
 
 // List roles with pagination
-func (rcv *RoleController) List(ctx *fiber.Ctx) error {
+func (rcv *roleController) List(ctx *fiber.Ctx) error {
 	limit, _ := utility.ParseIntQuery(ctx, "limit", 20)
 	offset, _ := utility.ParseIntQuery(ctx, "offset", 0)
 	order := ctx.Query("order", "id asc")
@@ -56,7 +56,7 @@ func (rcv *RoleController) List(ctx *fiber.Ctx) error {
 }
 
 // Get role by ID
-func (rcv *RoleController) Get(ctx *fiber.Ctx) error {
+func (rcv *roleController) Get(ctx *fiber.Ctx) error {
 	id, err := utility.ParseID(ctx, "id")
 	if err != nil {
 		return err
@@ -76,7 +76,7 @@ func (rcv *RoleController) Get(ctx *fiber.Ctx) error {
 }
 
 // Create new role
-func (rcv *RoleController) Create(ctx *fiber.Ctx) error {
+func (rcv *roleController) Create(ctx *fiber.Ctx) error {
 	var req transfer.RoleCreateRequest
 
 	if err := utility.ValidateBody(ctx, &req); err != nil {
@@ -97,7 +97,7 @@ func (rcv *RoleController) Create(ctx *fiber.Ctx) error {
 }
 
 // Update role by ID
-func (rcv *RoleController) Update(ctx *fiber.Ctx) error {
+func (rcv *roleController) Update(ctx *fiber.Ctx) error {
 	id, err := utility.ParseID(ctx, "id")
 	if err != nil {
 		return err
@@ -123,7 +123,7 @@ func (rcv *RoleController) Update(ctx *fiber.Ctx) error {
 }
 
 // Delete role by ID
-func (rcv *RoleController) Delete(ctx *fiber.Ctx) error {
+func (rcv *roleController) Delete(ctx *fiber.Ctx) error {
 	id, err := utility.ParseID(ctx, "id")
 	if err != nil {
 		return err

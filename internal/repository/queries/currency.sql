@@ -9,6 +9,12 @@ RETURNING id, name, code, num_code, symbol, created_at, updated_at;
 -- name: CountCurrencies :one
 SELECT count(*) FROM currency;
 
+-- name: GetCurrencyByID :one
+SELECT * FROM currency c WHERE c.id = @id;
+
+-- name: GetCurrencyByName :one
+SELECT * FROM currency c WHERE c.name = @name;
+
 -- name: ListCurrencies :many
 SELECT *
   FROM currency c
@@ -18,12 +24,12 @@ SELECT *
     name ASC
  LIMIT @sql_limit OFFSET @sql_offset;
 
--- name: GetCurrencyByID :one
-SELECT * FROM currency c WHERE c.id = @id;
-
 -- name: UpdateCurrencyByID :one
 UPDATE currency
-   SET name = @name, code = @code, num_code = @num_code, symbol = @symbol
+   SET name = @name,
+       code = @code,
+       num_code = @num_code,
+       symbol = @symbol
  WHERE id = @id
        RETURNING id, name, code, num_code, symbol, created_at, updated_at;
 

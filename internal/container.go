@@ -22,10 +22,11 @@ type Container struct {
 	Metadata map[string]string
 
 	// Modules
-	AuxModule     module.IAuxModule
-	AuthModule    module.IAuthModule
-	RoleModule    module.IRoleModule
-	CountryModule module.ICountryModule
+	AuxModule      module.IAuxModule
+	AuthModule     module.IAuthModule
+	RoleModule     module.IRoleModule
+	CountryModule  module.ICountryModule
+	CurrencyModule module.ICurrencyModule
 }
 
 func NewContainer() *Container {
@@ -58,14 +59,16 @@ func NewContainer() *Container {
 	authModule := module.NewAuthModule(queries, blacklistService)
 	roleModule := module.NewRoleModule(queries)
 	countryModule := module.NewCountryModule(queries)
+	currencyModule := module.NewCurrencyModule(queries)
 
 	return &Container{
-		DBPool:        dbPool,
-		DBCache:       dbCache,
-		Metadata:      metadata,
-		AuxModule:     auxModule,
-		AuthModule:    authModule,
-		RoleModule:    roleModule,
-		CountryModule: countryModule,
+		DBPool:         dbPool,
+		DBCache:        dbCache,
+		Metadata:       metadata,
+		AuxModule:      auxModule,
+		AuthModule:     authModule,
+		RoleModule:     roleModule,
+		CountryModule:  countryModule,
+		CurrencyModule: currencyModule,
 	}
 }

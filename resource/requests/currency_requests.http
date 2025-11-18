@@ -1,0 +1,10 @@
+
+@baseUrl = http://localhost:8081/api/v1/currencies
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJkNGRkb2lhOGhtcm4ybzRqZGppMCIsImp0aSI6ImQ0ZGUxNmk1bWpqMHBnMzNhbmMwIiwic2lkIjoiZDRkZTE2aThobXJncWdramRqajAiLCJleHAiOjE3NjMzNzAwMTQsImlhdCI6MTc2MzM2OTExNH0.Gy-6acfsWM52fp18wPPiC3Cj7ZjMZrjcX76Ha_VPKGE
+
+###
+
+GET {{baseUrl}}
+Authorization: Bearer {{accessToken}}
+
+###

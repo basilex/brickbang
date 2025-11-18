@@ -29,11 +29,11 @@ func RequestLogger(logger *slog.Logger) fiber.Handler {
 		)
 
 		if err != nil {
-			log.Error("completed with error", "error", err)
+			log.Error("error", "error", err)
 			return err
 		}
 
-		log.Info("completed")
+		log.Info("done")
 		return nil
 	}
 }

@@ -29,14 +29,6 @@ func NewAuthModule(queries *dbs.Queries, blacklistSvc service.IBlacklistService)
 	}
 }
 
-func (m *authModule) AuthService() service.IAuthService {
-	return m.authSvc
-}
-
-func (m *authModule) BlacklistService() service.IBlacklistService {
-	return m.blacklistSvc
-}
-
-func (m *authModule) Controller() controller.IAuthController {
-	return m.ctrl
-}
+func (m *authModule) AuthService() service.IAuthService           { return m.authSvc }
+func (m *authModule) BlacklistService() service.IBlacklistService { return m.blacklistSvc }
+func (m *authModule) Controller() controller.IAuthController      { return m.ctrl }

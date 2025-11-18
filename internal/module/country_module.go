@@ -19,9 +19,7 @@ func NewCountryModule(dbs *dbs.Queries) ICountryModule {
 	svc := service.NewCountryService(dbs)
 	ctrl := controller.NewCountryController(svc)
 
-	return &countryModule{
-		svc: svc, ctrl: ctrl,
-	}
+	return &countryModule{svc: svc, ctrl: ctrl}
 }
 
 func (rcv *countryModule) Service() service.ICountryService          { return rcv.svc }

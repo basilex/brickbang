@@ -74,9 +74,9 @@ func (rcv *roleService) UpdateByID(ctx context.Context, id string, name string) 
 
 // Delete role by ID
 func (rcv *roleService) DeleteByID(ctx context.Context, id string) (string, error) {
-	id, err := rcv.queries.DeleteRoleByID(ctx, id)
+	role, err := rcv.queries.DeleteRoleByID(ctx, id)
 	if err != nil {
 		return "", err
 	}
-	return id, nil
+	return role.ID, nil
 }

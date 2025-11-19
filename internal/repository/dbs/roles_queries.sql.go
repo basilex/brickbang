@@ -45,16 +45,22 @@ func (q *Queries) CreateRole(ctx context.Context, name string) (*Role, error) {
 }
 
 const deleteRoleByID = `-- name: DeleteRoleByID :one
-DELETE FROM roles WHERE id = $1 RETURNING id
+DELETE FROM roles WHERE id = $1 RETURNING id, name, created_at, updated_at
 `
 
 // DeleteRoleByID
 //
-//	DELETE FROM roles WHERE id = $1 RETURNING id
-func (q *Queries) DeleteRoleByID(ctx context.Context, id string) (string, error) {
+//	DELETE FROM roles WHERE id = $1 RETURNING id, name, created_at, updated_at
+func (q *Queries) DeleteRoleByID(ctx context.Context, id string) (*Role, error) {
 	row := q.db.QueryRow(ctx, deleteRoleByID, id)
-	err := row.Scan(&id)
-	return id, err
+	var i Role
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
 }
 
 const getRoleByID = `-- name: GetRoleByID :one

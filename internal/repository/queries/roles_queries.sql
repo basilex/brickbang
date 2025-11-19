@@ -26,4 +26,4 @@ UPDATE roles
  WHERE id = @id RETURNING *;
 
 -- name: DeleteRoleByID :one
-DELETE FROM roles WHERE id = @id RETURNING id;
+DELETE FROM roles WHERE id = @id RETURNING *;

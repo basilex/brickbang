@@ -63,8 +63,16 @@ func Run() {
 
 	app.Use(middleware.RequestLogger(logger))
 
+	// Global headers response middleware
+	app.Use(middleware.GlobalHeaders())
+
 	// Unified response middleware
 	app.Use(middleware.UnifiedResponse())
+
+	// ETag siphash middleware
+	app.Use(middleware.NewSipHashETagMiddleware(
+		cfg.SecuritySipHashKey0, cfg.SecuritySipHashKey1,
+	).Handler())
 
 	// Initialize dependencies and routes
 	container := internal.NewContainer()

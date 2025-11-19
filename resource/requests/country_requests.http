@@ -1,9 +1,14 @@
 @baseUrl = http://localhost:8081/api/v1/countries
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJkNGRkb2lhOGhtcm4ybzRqZGppMCIsImp0aSI6ImQ0ZGUxNmk1bWpqMHBnMzNhbmMwIiwic2lkIjoiZDRkZTE2aThobXJncWdramRqajAiLCJleHAiOjE3NjMzNzAwMTQsImlhdCI6MTc2MzM2OTExNH0.Gy-6acfsWM52fp18wPPiC3Cj7ZjMZrjcX76Ha_VPKGE
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJkNGRkb2lhOGhtcm4ybzRqZGppMCIsImp0aSI6ImQ0ZXBnNmE1bWpqNHQ5MXZjNWNnIiwic2lkIjoiZDRlcGc2YThobXJsMDdramRqbGciLCJleHAiOjE3NjM1NDgwNjEsImlhdCI6MTc2MzU0NzE2MX0.NmxKfcKIataRX4HLF6NlKP6VAt-JiPkqPQmx6b_pk7g
 
 ###
 
 GET {{baseUrl}}
+Authorization: Bearer {{accessToken}}
+
+###
+
+GET {{baseUrl}}/currencies
 Authorization: Bearer {{accessToken}}
 
 ###

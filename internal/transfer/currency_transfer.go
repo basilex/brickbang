@@ -26,3 +26,15 @@ type CurrencyResponse struct {
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
 }
+
+// CurrencyWithCountriesResponse
+type CurrencyWithCountriesResponse struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Code      string `json:"code"`
+	NumCode   int16  `json:"num_code"`
+	Symbol    string `json:"symbol"`
+	Countries any    `json:"countries"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+}

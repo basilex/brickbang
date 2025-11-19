@@ -16,6 +16,7 @@ type ICountryService interface {
 	GetByName(ctx context.Context, name string) (*dbs.Country, error)
 	Count(ctx context.Context) (int64, error)
 	List(ctx context.Context, order string, limit, offset int32) ([]*dbs.Country, error)
+	ListWithCurrencies(ctx context.Context, order string, limit, offset int32) ([]*dbs.ListCountriesWithCurrenciesRow, error)
 	UpdateByID(ctx context.Context, id string, req *transfer.CountryUpdateRequest) (*dbs.Country, error)
 	DeleteByID(ctx context.Context, id string) (string, error)
 }
@@ -75,6 +76,17 @@ func (rcv *countryService) List(ctx context.Context, order string, limit, offset
 	}
 
 	return rcv.queries.ListCountries(ctx, params)
+}
+
+// List countries with currencies with pagination and order
+func (rcv *countryService) ListWithCurrencies(ctx context.Context, order string, limit, offset int32) ([]*dbs.ListCountriesWithCurrenciesRow, error) {
+	params := &dbs.ListCountriesWithCurrenciesParams{
+		SqlOrder:  order,
+		SqlLimit:  limit,
+		SqlOffset: offset,
+	}
+
+	return rcv.queries.ListCountriesWithCurrencies(ctx, params)
 }
 
 // Update country by ID

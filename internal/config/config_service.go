@@ -49,6 +49,10 @@ type Config struct {
 	JWTSecret            string
 	JWTAccessExpiration  time.Duration
 	JWTRefreshExpiration time.Duration
+
+	// NEW — SipHash ETag keys
+	SecuritySipHashKey0 uint64
+	SecuritySipHashKey1 uint64
 }
 
 var (
@@ -102,6 +106,9 @@ func Init(env string) *Config {
 		cfg.JWTSecret = getEnv("JWT_SECRET", "devsecret")
 		cfg.JWTAccessExpiration = parseDuration(getEnv("JWT_ACCESS_EXPIRATION", "15m"))
 		cfg.JWTRefreshExpiration = parseDuration(getEnv("JWT_REFRESH_EXPIRATION", "24h"))
+
+		cfg.SecuritySipHashKey0 = parseUint64Hex(getEnv("SECURITY_SIPHASH_KEY0", "0x1122334455667788"))
+		cfg.SecuritySipHashKey1 = parseUint64Hex(getEnv("SECURITY_SIPHASH_KEY1", "0x8877665544332211"))
 	})
 
 	return cfg
@@ -133,4 +140,21 @@ func parseInt(s string) int {
 func parseDuration(s string) time.Duration {
 	d, _ := time.ParseDuration(s)
 	return d
+}
+
+func parseUint64Hex(s string) uint64 {
+	if len(s) > 2 && (s[0:2] == "0x" || s[0:2] == "0X") {
+		v, err := strconv.ParseUint(s[2:], 16, 64)
+		if err != nil {
+			return 0
+		}
+		return v
+	}
+
+	v, err := strconv.ParseUint(s, 10, 64)
+	if err != nil {
+		return 0
+	}
+
+	return v
 }

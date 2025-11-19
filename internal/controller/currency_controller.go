@@ -24,6 +24,7 @@ func NewCurrencyController(svc service.ICurrencyService) ICurrencyController {
 
 func (rcv *currencyController) RegisterRoutes(router fiber.Router) {
 	router.Get("/", rcv.List)
+	router.Get("/countries", rcv.ListWithCountries)
 	router.Get("/:id", rcv.Get)
 	router.Post("/", rcv.Create)
 	router.Put("/:id", rcv.Update)
@@ -50,6 +51,35 @@ func (rcv *currencyController) List(ctx *fiber.Ctx) error {
 			Code:      currency.Code,
 			NumCode:   currency.NumCode,
 			Symbol:    currency.Symbol,
+			CreatedAt: utility.FromPGTimestampToString(currency.CreatedAt),
+			UpdatedAt: utility.FromPGTimestampToString(currency.UpdatedAt),
+		}
+	}
+
+	return ctx.JSON(resp)
+}
+
+// List currencies with countries with pagination
+func (rcv *currencyController) ListWithCountries(ctx *fiber.Ctx) error {
+	limit, _ := utility.ParseIntQuery(ctx, "limit", 20)
+	offset, _ := utility.ParseIntQuery(ctx, "offset", 0)
+	order := ctx.Query("order", "id asc")
+
+	currencies, err := rcv.svc.ListWithCountries(ctx.Context(), order, int32(limit), int32(offset))
+	if err != nil {
+		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
+	}
+
+	resp := make([]*transfer.CurrencyWithCountriesResponse, len(currencies))
+
+	for idx, currency := range currencies {
+		resp[idx] = &transfer.CurrencyWithCountriesResponse{
+			ID:        currency.ID,
+			Name:      currency.Name,
+			Code:      currency.Code,
+			NumCode:   currency.NumCode,
+			Symbol:    currency.Symbol,
+			Countries: currency.Countries,
 			CreatedAt: utility.FromPGTimestampToString(currency.CreatedAt),
 			UpdatedAt: utility.FromPGTimestampToString(currency.UpdatedAt),
 		}

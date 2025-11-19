@@ -5,23 +5,20 @@ RETURNING id, username, password, is_blocked, is_checked, blocked_at, checked_at
 
 -- name: AuthSelectUserByID :one
 SELECT id, username, password, is_blocked, is_checked, blocked_at, checked_at, visited_at, created_at, updated_at
-FROM users
-WHERE id = @id;
+  FROM users
+ WHERE id = @id;
 
 -- name: AuthSelectUserCredentials :one
 SELECT id, username, password, is_blocked, is_checked, blocked_at, checked_at
-FROM users
-WHERE username = @username;
+  FROM users
+ WHERE username = @username;
 
 -- name: AuthUpdateVisitedAt :one
 UPDATE users
-SET visited_at = timezone('utc', now())
-WHERE id = @id
-RETURNING id, username, visited_at, created_at, updated_at;
+   SET visited_at = timezone('utc', now())
+ WHERE id = @id RETURNING id, username, visited_at, created_at, updated_at;
 
 -- name: AuthBlockUserByID :one
 UPDATE users
-SET is_blocked = true,
-    blocked_at = timezone('utc', now())
-WHERE id = @id
-RETURNING id, username, is_blocked, blocked_at;
+   SET is_blocked = true, blocked_at = timezone('utc', now())
+ WHERE id = @id RETURNING id, username, is_blocked, blocked_at;

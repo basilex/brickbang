@@ -146,6 +146,15 @@ func (s *authService) Login(ctx context.Context, req *transfer.AuthLoginRequest)
 		return nil, err
 	}
 
+	// --- Обновляем visited_at для пользователя
+	_, err = s.queries.UpdateVisitedAtByUserID(ctx, &dbs.UpdateVisitedAtByUserIDParams{
+		ID:        user.ID,
+		VisitedAt: utility.ToPGTimestamp(time.Now().UTC()),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	resp := &transfer.AuthLoginResponse{
 		User: &transfer.AuthUserResponse{
 			ID:        user.ID,

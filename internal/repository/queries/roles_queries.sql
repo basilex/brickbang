@@ -1,5 +1,3 @@
--- Roles
-
 -- name: CreateRole :one
 INSERT INTO roles (name) VALUES (@name)
 RETURNING *;
@@ -18,7 +16,8 @@ SELECT *
   FROM roles
  ORDER BY
     CASE WHEN @sql_order = 'asc' THEN name END ASC,
-    CASE WHEN @sql_order = 'desc' THEN name END DESC
+    CASE WHEN @sql_order = 'desc' THEN name END DESC,
+      name ASC
  LIMIT @sql_limit OFFSET @sql_offset;
 
 -- name: UpdateRoleByID :one

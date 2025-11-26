@@ -66,7 +66,7 @@ func (rcv *roleService) List(ctx context.Context, order string, limit, offset in
 	return rcv.queries.ListRoles(ctx, params)
 }
 
-// Update role name by ID
+// Update role name and description by ID
 func (rcv *roleService) UpdateByID(ctx context.Context, id string, name string, description string) (*dbs.Role, error) {
 	params := &dbs.UpdateRoleByIDParams{
 		ID:          id,

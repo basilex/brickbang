@@ -19,9 +19,7 @@ func NewRoleModule(dbs *dbs.Queries) IRoleModule {
 	svc := service.NewRoleService(dbs)
 	ctrl := controller.NewRoleController(svc)
 
-	return &roleModule{
-		svc: svc, ctrl: ctrl,
-	}
+	return &roleModule{svc: svc, ctrl: ctrl}
 }
 
 func (rcv *roleModule) Service() service.IRoleService          { return rcv.svc }

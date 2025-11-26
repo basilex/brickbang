@@ -19,9 +19,7 @@ func NewGrantModule(dbs *dbs.Queries) IGrantModule {
 	svc := service.NewGrantService(dbs)
 	ctrl := controller.NewGrantController(svc)
 
-	return &grantModule{
-		svc: svc, ctrl: ctrl,
-	}
+	return &grantModule{svc: svc, ctrl: ctrl}
 }
 
 func (rcv *grantModule) Service() service.IGrantService          { return rcv.svc }

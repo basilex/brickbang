@@ -23,9 +23,7 @@ func NewAuthModule(queries *dbs.Queries, blacklistSvc service.IBlacklistService)
 	ctrl := controller.NewAuthController(authSvc)
 
 	return &authModule{
-		authSvc:      authSvc,
-		blacklistSvc: blacklistSvc,
-		ctrl:         ctrl,
+		authSvc: authSvc, blacklistSvc: blacklistSvc, ctrl: ctrl,
 	}
 }
 

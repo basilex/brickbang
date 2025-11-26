@@ -112,6 +112,7 @@ func Run() {
 				"maxproc", maxprocs,
 				"address", cfg.ServerAddress,
 			)
+
 			slog.Info("BrickBang server metadata:",
 				"version", internal.Version,
 				"staging", internal.Staging,
@@ -119,8 +120,14 @@ func Run() {
 				"gobuild", internal.Gobuild,
 				"compile", internal.Compile,
 			)
-			utility.InspectRoutes(app, false)
+
+			if cfg.Env == "dev" {
+				slog.Info("Development mode is enabled")
+				utility.InspectRoutes(app, false)
+			}
 		}
+
+		// TODO: Make it more robust by checking if all children are started
 		// Wait a short period to ensure all children started
 		time.Sleep(startupTimeout)
 		slog.Info("BrickBang server started", "address", cfg.ServerAddress)

@@ -75,6 +75,7 @@ func (rcv *Registrar) RegisterAll() *Registrar {
 	// PRIVATE
 	rcv.WithPrivate("/auth").registerAuthPrivateRoutes()
 	rcv.WithPrivate("/roles").registerRolesRoutes()
+	rcv.WithPrivate("/grants").registerGrantsRoutes()
 	rcv.WithPrivate("/countries").registerCountryRoutes()
 	rcv.WithPrivate("/currencies").registerCurrencyRoutes()
 
@@ -103,6 +104,11 @@ func (rcv *Registrar) registerAuthPrivateRoutes() *Registrar {
 
 func (rcv *Registrar) registerRolesRoutes() *Registrar {
 	rcv.container.RoleModule.Controller().RegisterRoutes(rcv.current)
+	return rcv
+}
+
+func (rcv *Registrar) registerGrantsRoutes() *Registrar {
+	rcv.container.GrantModule.Controller().RegisterRoutes(rcv.current)
 	return rcv
 }
 

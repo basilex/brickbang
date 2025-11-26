@@ -25,6 +25,7 @@ type Container struct {
 	AuxModule      module.IAuxModule
 	AuthModule     module.IAuthModule
 	RoleModule     module.IRoleModule
+	GrantModule    module.IGrantModule
 	CountryModule  module.ICountryModule
 	CurrencyModule module.ICurrencyModule
 }
@@ -58,6 +59,7 @@ func NewContainer() *Container {
 	auxModule := module.NewAuxModule(metadata)
 	authModule := module.NewAuthModule(queries, blacklistService)
 	roleModule := module.NewRoleModule(queries)
+	grantModule := module.NewGrantModule(queries)
 	countryModule := module.NewCountryModule(queries)
 	currencyModule := module.NewCurrencyModule(queries)
 
@@ -68,6 +70,7 @@ func NewContainer() *Container {
 		AuxModule:      auxModule,
 		AuthModule:     authModule,
 		RoleModule:     roleModule,
+		GrantModule:    grantModule,
 		CountryModule:  countryModule,
 		CurrencyModule: currencyModule,
 	}

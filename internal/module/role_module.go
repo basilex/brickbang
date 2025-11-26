@@ -11,16 +11,16 @@ type IRoleModule interface {
 	Controller() controller.IRoleController
 }
 type roleModule struct {
-	svc  service.IRoleService
-	ctrl controller.IRoleController
+	service    service.IRoleService
+	controller controller.IRoleController
 }
 
 func NewRoleModule(dbs *dbs.Queries) IRoleModule {
-	svc := service.NewRoleService(dbs)
-	ctrl := controller.NewRoleController(svc)
+	service := service.NewRoleService(dbs)
+	controller := controller.NewRoleController(service)
 
-	return &roleModule{svc: svc, ctrl: ctrl}
+	return &roleModule{service: service, controller: controller}
 }
 
-func (rcv *roleModule) Service() service.IRoleService          { return rcv.svc }
-func (rcv *roleModule) Controller() controller.IRoleController { return rcv.ctrl }
+func (rcv *roleModule) Service() service.IRoleService          { return rcv.service }
+func (rcv *roleModule) Controller() controller.IRoleController { return rcv.controller }

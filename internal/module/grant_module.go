@@ -11,16 +11,16 @@ type IGrantModule interface {
 	Controller() controller.IGrantController
 }
 type grantModule struct {
-	svc  service.IGrantService
-	ctrl controller.IGrantController
+	service    service.IGrantService
+	controller controller.IGrantController
 }
 
 func NewGrantModule(dbs *dbs.Queries) IGrantModule {
-	svc := service.NewGrantService(dbs)
-	ctrl := controller.NewGrantController(svc)
+	service := service.NewGrantService(dbs)
+	controller := controller.NewGrantController(service)
 
-	return &grantModule{svc: svc, ctrl: ctrl}
+	return &grantModule{service: service, controller: controller}
 }
 
-func (rcv *grantModule) Service() service.IGrantService          { return rcv.svc }
-func (rcv *grantModule) Controller() controller.IGrantController { return rcv.ctrl }
+func (rcv *grantModule) Service() service.IGrantService          { return rcv.service }
+func (rcv *grantModule) Controller() controller.IGrantController { return rcv.controller }

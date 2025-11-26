@@ -11,16 +11,16 @@ type ICurrencyModule interface {
 	Controller() controller.ICurrencyController
 }
 type currencyModule struct {
-	svc  service.ICurrencyService
-	ctrl controller.ICurrencyController
+	service    service.ICurrencyService
+	controller controller.ICurrencyController
 }
 
 func NewCurrencyModule(dbs *dbs.Queries) ICurrencyModule {
-	svc := service.NewCurrencyService(dbs)
-	ctrl := controller.NewCurrencyController(svc)
+	service := service.NewCurrencyService(dbs)
+	controller := controller.NewCurrencyController(service)
 
-	return &currencyModule{svc: svc, ctrl: ctrl}
+	return &currencyModule{service: service, controller: controller}
 }
 
-func (rcv *currencyModule) Service() service.ICurrencyService          { return rcv.svc }
-func (rcv *currencyModule) Controller() controller.ICurrencyController { return rcv.ctrl }
+func (rcv *currencyModule) Service() service.ICurrencyService          { return rcv.service }
+func (rcv *currencyModule) Controller() controller.ICurrencyController { return rcv.controller }

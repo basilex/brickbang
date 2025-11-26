@@ -11,16 +11,16 @@ type ICountryModule interface {
 	Controller() controller.ICountryController
 }
 type countryModule struct {
-	svc  service.ICountryService
-	ctrl controller.ICountryController
+	service    service.ICountryService
+	controller controller.ICountryController
 }
 
 func NewCountryModule(dbs *dbs.Queries) ICountryModule {
-	svc := service.NewCountryService(dbs)
-	ctrl := controller.NewCountryController(svc)
+	service := service.NewCountryService(dbs)
+	controller := controller.NewCountryController(service)
 
-	return &countryModule{svc: svc, ctrl: ctrl}
+	return &countryModule{service: service, controller: controller}
 }
 
-func (rcv *countryModule) Service() service.ICountryService          { return rcv.svc }
-func (rcv *countryModule) Controller() controller.ICountryController { return rcv.ctrl }
+func (rcv *countryModule) Service() service.ICountryService          { return rcv.service }
+func (rcv *countryModule) Controller() controller.ICountryController { return rcv.controller }

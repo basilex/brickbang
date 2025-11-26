@@ -11,16 +11,16 @@ type IAuxModule interface {
 }
 
 type auxModule struct {
-	svc  service.IAuxService
-	ctrl controller.IAuxController
+	service    service.IAuxService
+	controller controller.IAuxController
 }
 
 func NewAuxModule(meta map[string]string) IAuxModule {
-	svc := service.NewAuxService(meta)
-	ctrl := controller.NewAuxController(svc)
+	service := service.NewAuxService(meta)
+	controller := controller.NewAuxController(service)
 
-	return &auxModule{svc: svc, ctrl: ctrl}
+	return &auxModule{service: service, controller: controller}
 }
 
-func (rcv *auxModule) Service() service.IAuxService          { return rcv.svc }
-func (rcv *auxModule) Controller() controller.IAuxController { return rcv.ctrl }
+func (rcv *auxModule) Service() service.IAuxService          { return rcv.service }
+func (rcv *auxModule) Controller() controller.IAuxController { return rcv.controller }

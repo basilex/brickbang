@@ -1,16 +1,15 @@
 package middleware
 
 import (
+	"brickbang/internal/utility"
 	"log"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
-
-	"brickbang/internal/exception"
 )
 
 func ErrorHandler(c *fiber.Ctx, err error) error {
-	if appErr, ok := err.(*exception.AppError); ok {
+	if appErr, ok := err.(*utility.AppError); ok {
 		return c.Status(appErr.Code).JSON(fiber.Map{
 			"error":   true,
 			"message": appErr.Message,

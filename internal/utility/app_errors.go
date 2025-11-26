@@ -1,14 +1,18 @@
-package exception
+package utility
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/gofiber/fiber/v2"
+)
 
 type AppError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
 
-func (e *AppError) Error() string {
-	return e.Message
+func (rcv *AppError) Error() string {
+	return rcv.Message
 }
 
 func NewAppError(code int, msg string) *AppError {
@@ -25,3 +29,7 @@ var (
 	ErrUnprocessable = func(msg string) *AppError { return NewAppError(http.StatusUnprocessableEntity, msg) }
 	ErrInternal      = func(msg string) *AppError { return NewAppError(http.StatusInternalServerError, msg) }
 )
+
+func RespondWithError(ctx *fiber.Ctx, status int, err error) error {
+	return ctx.Status(status).JSON(fiber.Map{"error": err.Error()})
+}

@@ -6,7 +6,7 @@ RETURNING *;
 SELECT COUNT(*) FROM grants;
 
 -- name: GetGrantByID :one
-SELECT * FROM grants WHERE id = @id;
+SELECT * FROM grants WHERE pid = @pid;
 
 -- name: GetGrantByCode :one
 SELECT * FROM grants WHERE code = @code;
@@ -23,7 +23,7 @@ SELECT *
 -- name: UpdateGrantByID :one
 UPDATE grants
    SET code = @code, description = @description
- WHERE id = @id RETURNING *;
+ WHERE pid = @pid RETURNING *;
 
 -- name: DeleteGrantByID :one
-DELETE FROM grants WHERE id = @id RETURNING *;
+DELETE FROM grants WHERE pid = @pid RETURNING *;

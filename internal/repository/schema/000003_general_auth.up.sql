@@ -30,6 +30,7 @@ insert into users(username, password, is_checked, checked_at) values
 --
 create table roles (
   id              varchar(32)     not null default xid() primary key,
+  pid             varchar(32)     not null default xid() unique,
   name            varchar(255)    not null unique,
   description     text            not null default '',
   created_at      timestamp       not null default timezone('utc', now()),
@@ -84,6 +85,7 @@ end $$;
 --
 create table grants (
   id              varchar(32)     not null default xid() primary key,
+  pid             varchar(32)     not null default xid() unique,
   code            varchar(255)    not null unique,
   description     text            not null default '',
   created_at      timestamp       not null default timezone('utc', now()),

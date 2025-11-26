@@ -14,7 +14,7 @@ type RoleUpdateRequest struct {
 
 // RoleResponse
 type RoleResponse struct {
-	ID          string `json:"id"`
+	Pid         string `json:"pid"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	CreatedAt   string `json:"created_at"`

@@ -14,7 +14,7 @@ type GrantUpdateRequest struct {
 
 // GrantResponse
 type GrantResponse struct {
-	ID          string `json:"id"`
+	Pid         string `json:"pid"`
 	Code        string `json:"code"`
 	Description string `json:"description"`
 	CreatedAt   string `json:"created_at"`

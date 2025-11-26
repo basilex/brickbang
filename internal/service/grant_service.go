@@ -9,12 +9,12 @@ import (
 
 type IGrantService interface {
 	Create(ctx context.Context, code string, description string) (*dbs.Grant, error)
-	GetByID(ctx context.Context, id string) (*dbs.Grant, error)
+	GetByID(ctx context.Context, pid string) (*dbs.Grant, error)
 	GetByCode(ctx context.Context, code string) (*dbs.Grant, error)
 	Count(ctx context.Context) (int64, error)
 	List(ctx context.Context, order string, limit, offset int32) ([]*dbs.Grant, error)
-	UpdateByID(ctx context.Context, id string, code string, description string) (*dbs.Grant, error)
-	DeleteByID(ctx context.Context, id string) (string, error)
+	UpdateByID(ctx context.Context, pid string, code string, description string) (*dbs.Grant, error)
+	DeleteByID(ctx context.Context, pid string) (string, error)
 }
 
 type grantService struct {
@@ -67,9 +67,9 @@ func (rcv *grantService) List(ctx context.Context, order string, limit, offset i
 }
 
 // Update grant name and description by ID
-func (rcv *grantService) UpdateByID(ctx context.Context, id string, code string, description string) (*dbs.Grant, error) {
+func (rcv *grantService) UpdateByID(ctx context.Context, pid string, code string, description string) (*dbs.Grant, error) {
 	params := &dbs.UpdateGrantByIDParams{
-		ID:          id,
+		Pid:         pid,
 		Code:        code,
 		Description: description,
 	}

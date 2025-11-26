@@ -45,7 +45,7 @@ func (rcv *roleController) List(ctx *fiber.Ctx) error {
 
 	for idx, role := range roles {
 		resp[idx] = &transfer.RoleResponse{
-			ID:          role.ID,
+			Pid:         role.Pid,
 			Name:        role.Name,
 			Description: role.Description,
 			CreatedAt:   utility.FromPGTimestampToString(role.CreatedAt),
@@ -69,7 +69,7 @@ func (rcv *roleController) Get(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.JSON(&transfer.RoleResponse{
-		ID:          role.ID,
+		Pid:         role.Pid,
 		Name:        role.Name,
 		Description: role.Description,
 		CreatedAt:   utility.FromPGTimestampToString(role.CreatedAt),
@@ -91,7 +91,7 @@ func (rcv *roleController) Create(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(&transfer.RoleResponse{
-		ID:          role.ID,
+		Pid:         role.Pid,
 		Name:        role.Name,
 		Description: role.Description,
 		CreatedAt:   utility.FromPGTimestampToString(role.CreatedAt),
@@ -118,7 +118,7 @@ func (rcv *roleController) Update(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.JSON(&transfer.RoleResponse{
-		ID:          role.ID,
+		Pid:         role.Pid,
 		Name:        role.Name,
 		Description: role.Description,
 		CreatedAt:   utility.FromPGTimestampToString(role.CreatedAt),

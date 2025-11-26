@@ -25,7 +25,7 @@ func (q *Queries) CountGrants(ctx context.Context) (int64, error) {
 
 const createGrant = `-- name: CreateGrant :one
 INSERT INTO grants (code, description) VALUES ($1, $2)
-RETURNING id, code, description, created_at, updated_at
+RETURNING id, pid, code, description, created_at, updated_at
 `
 
 type CreateGrantParams struct {
@@ -36,12 +36,13 @@ type CreateGrantParams struct {
 // CreateGrant
 //
 //	INSERT INTO grants (code, description) VALUES ($1, $2)
-//	RETURNING id, code, description, created_at, updated_at
+//	RETURNING id, pid, code, description, created_at, updated_at
 func (q *Queries) CreateGrant(ctx context.Context, arg *CreateGrantParams) (*Grant, error) {
 	row := q.db.QueryRow(ctx, createGrant, arg.Code, arg.Description)
 	var i Grant
 	err := row.Scan(
 		&i.ID,
+		&i.Pid,
 		&i.Code,
 		&i.Description,
 		&i.CreatedAt,
@@ -51,17 +52,18 @@ func (q *Queries) CreateGrant(ctx context.Context, arg *CreateGrantParams) (*Gra
 }
 
 const deleteGrantByID = `-- name: DeleteGrantByID :one
-DELETE FROM grants WHERE id = $1 RETURNING id, code, description, created_at, updated_at
+DELETE FROM grants WHERE pid = $1 RETURNING id, pid, code, description, created_at, updated_at
 `
 
 // DeleteGrantByID
 //
-//	DELETE FROM grants WHERE id = $1 RETURNING id, code, description, created_at, updated_at
-func (q *Queries) DeleteGrantByID(ctx context.Context, id string) (*Grant, error) {
-	row := q.db.QueryRow(ctx, deleteGrantByID, id)
+//	DELETE FROM grants WHERE pid = $1 RETURNING id, pid, code, description, created_at, updated_at
+func (q *Queries) DeleteGrantByID(ctx context.Context, pid string) (*Grant, error) {
+	row := q.db.QueryRow(ctx, deleteGrantByID, pid)
 	var i Grant
 	err := row.Scan(
 		&i.ID,
+		&i.Pid,
 		&i.Code,
 		&i.Description,
 		&i.CreatedAt,
@@ -71,17 +73,18 @@ func (q *Queries) DeleteGrantByID(ctx context.Context, id string) (*Grant, error
 }
 
 const getGrantByCode = `-- name: GetGrantByCode :one
-SELECT id, code, description, created_at, updated_at FROM grants WHERE code = $1
+SELECT id, pid, code, description, created_at, updated_at FROM grants WHERE code = $1
 `
 
 // GetGrantByCode
 //
-//	SELECT id, code, description, created_at, updated_at FROM grants WHERE code = $1
+//	SELECT id, pid, code, description, created_at, updated_at FROM grants WHERE code = $1
 func (q *Queries) GetGrantByCode(ctx context.Context, code string) (*Grant, error) {
 	row := q.db.QueryRow(ctx, getGrantByCode, code)
 	var i Grant
 	err := row.Scan(
 		&i.ID,
+		&i.Pid,
 		&i.Code,
 		&i.Description,
 		&i.CreatedAt,
@@ -91,17 +94,18 @@ func (q *Queries) GetGrantByCode(ctx context.Context, code string) (*Grant, erro
 }
 
 const getGrantByID = `-- name: GetGrantByID :one
-SELECT id, code, description, created_at, updated_at FROM grants WHERE id = $1
+SELECT id, pid, code, description, created_at, updated_at FROM grants WHERE pid = $1
 `
 
 // GetGrantByID
 //
-//	SELECT id, code, description, created_at, updated_at FROM grants WHERE id = $1
-func (q *Queries) GetGrantByID(ctx context.Context, id string) (*Grant, error) {
-	row := q.db.QueryRow(ctx, getGrantByID, id)
+//	SELECT id, pid, code, description, created_at, updated_at FROM grants WHERE pid = $1
+func (q *Queries) GetGrantByID(ctx context.Context, pid string) (*Grant, error) {
+	row := q.db.QueryRow(ctx, getGrantByID, pid)
 	var i Grant
 	err := row.Scan(
 		&i.ID,
+		&i.Pid,
 		&i.Code,
 		&i.Description,
 		&i.CreatedAt,
@@ -111,7 +115,7 @@ func (q *Queries) GetGrantByID(ctx context.Context, id string) (*Grant, error) {
 }
 
 const listGrants = `-- name: ListGrants :many
-SELECT id, code, description, created_at, updated_at
+SELECT id, pid, code, description, created_at, updated_at
   FROM grants
  ORDER BY
     CASE WHEN $1 = 'asc' THEN code END ASC,
@@ -128,7 +132,7 @@ type ListGrantsParams struct {
 
 // ListGrants
 //
-//	SELECT id, code, description, created_at, updated_at
+//	SELECT id, pid, code, description, created_at, updated_at
 //	  FROM grants
 //	 ORDER BY
 //	    CASE WHEN $1 = 'asc' THEN code END ASC,
@@ -146,6 +150,7 @@ func (q *Queries) ListGrants(ctx context.Context, arg *ListGrantsParams) ([]*Gra
 		var i Grant
 		if err := rows.Scan(
 			&i.ID,
+			&i.Pid,
 			&i.Code,
 			&i.Description,
 			&i.CreatedAt,
@@ -164,25 +169,26 @@ func (q *Queries) ListGrants(ctx context.Context, arg *ListGrantsParams) ([]*Gra
 const updateGrantByID = `-- name: UpdateGrantByID :one
 UPDATE grants
    SET code = $1, description = $2
- WHERE id = $3 RETURNING id, code, description, created_at, updated_at
+ WHERE pid = $3 RETURNING id, pid, code, description, created_at, updated_at
 `
 
 type UpdateGrantByIDParams struct {
 	Code        string `json:"code"`
 	Description string `json:"description"`
-	ID          string `json:"id"`
+	Pid         string `json:"pid"`
 }
 
 // UpdateGrantByID
 //
 //	UPDATE grants
 //	   SET code = $1, description = $2
-//	 WHERE id = $3 RETURNING id, code, description, created_at, updated_at
+//	 WHERE pid = $3 RETURNING id, pid, code, description, created_at, updated_at
 func (q *Queries) UpdateGrantByID(ctx context.Context, arg *UpdateGrantByIDParams) (*Grant, error) {
-	row := q.db.QueryRow(ctx, updateGrantByID, arg.Code, arg.Description, arg.ID)
+	row := q.db.QueryRow(ctx, updateGrantByID, arg.Code, arg.Description, arg.Pid)
 	var i Grant
 	err := row.Scan(
 		&i.ID,
+		&i.Pid,
 		&i.Code,
 		&i.Description,
 		&i.CreatedAt,

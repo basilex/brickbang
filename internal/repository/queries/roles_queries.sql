@@ -6,7 +6,7 @@ RETURNING *;
 SELECT COUNT(*) FROM roles;
 
 -- name: GetRoleByID :one
-SELECT * FROM roles WHERE id = @id;
+SELECT * FROM roles WHERE pid = @pid;
 
 -- name: GetRoleByName :one
 SELECT * FROM roles WHERE name = @name;
@@ -23,7 +23,7 @@ SELECT *
 -- name: UpdateRoleByID :one
 UPDATE roles
    SET name = @name, description = @description
- WHERE id = @id RETURNING *;
+ WHERE pid = @pid RETURNING *;
 
 -- name: DeleteRoleByID :one
-DELETE FROM roles WHERE id = @id RETURNING *;
+DELETE FROM roles WHERE pid = @pid RETURNING *;

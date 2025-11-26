@@ -47,6 +47,7 @@ type Currency struct {
 
 type Grant struct {
 	ID          string           `json:"id"`
+	Pid         string           `json:"pid"`
 	Code        string           `json:"code"`
 	Description string           `json:"description"`
 	CreatedAt   pgtype.Timestamp `json:"created_at"`
@@ -69,6 +70,7 @@ type Profile struct {
 
 type Role struct {
 	ID          string           `json:"id"`
+	Pid         string           `json:"pid"`
 	Name        string           `json:"name"`
 	Description string           `json:"description"`
 	CreatedAt   pgtype.Timestamp `json:"created_at"`

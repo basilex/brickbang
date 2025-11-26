@@ -9,12 +9,12 @@ import (
 
 type IRoleService interface {
 	Create(ctx context.Context, name string, description string) (*dbs.Role, error)
-	GetByID(ctx context.Context, id string) (*dbs.Role, error)
+	GetByID(ctx context.Context, pid string) (*dbs.Role, error)
 	GetByName(ctx context.Context, name string) (*dbs.Role, error)
 	Count(ctx context.Context) (int64, error)
 	List(ctx context.Context, order string, limit, offset int32) ([]*dbs.Role, error)
-	UpdateByID(ctx context.Context, id string, name string, description string) (*dbs.Role, error)
-	DeleteByID(ctx context.Context, id string) (string, error)
+	UpdateByID(ctx context.Context, pid string, name string, description string) (*dbs.Role, error)
+	DeleteByID(ctx context.Context, pid string) (string, error)
 }
 
 type roleService struct {
@@ -34,8 +34,8 @@ func (rcv *roleService) Create(ctx context.Context, name string, description str
 }
 
 // Get a role by its ID
-func (rcv *roleService) GetByID(ctx context.Context, id string) (*dbs.Role, error) {
-	role, err := rcv.queries.GetRoleByID(ctx, id)
+func (rcv *roleService) GetByID(ctx context.Context, pid string) (*dbs.Role, error) {
+	role, err := rcv.queries.GetRoleByID(ctx, pid)
 	if err != nil {
 		return nil, errors.New("role not found")
 	}
@@ -67,20 +67,20 @@ func (rcv *roleService) List(ctx context.Context, order string, limit, offset in
 }
 
 // Update role name and description by ID
-func (rcv *roleService) UpdateByID(ctx context.Context, id string, name string, description string) (*dbs.Role, error) {
+func (rcv *roleService) UpdateByID(ctx context.Context, pid string, name string, description string) (*dbs.Role, error) {
 	params := &dbs.UpdateRoleByIDParams{
-		ID:          id,
+		Pid:         pid,
 		Name:        name,
 		Description: description,
 	}
 	return rcv.queries.UpdateRoleByID(ctx, params)
 }
 
-// Delete role by ID
-func (rcv *roleService) DeleteByID(ctx context.Context, id string) (string, error) {
-	role, err := rcv.queries.DeleteRoleByID(ctx, id)
+// Delete role by Pid
+func (rcv *roleService) DeleteByID(ctx context.Context, pid string) (string, error) {
+	role, err := rcv.queries.DeleteRoleByID(ctx, pid)
 	if err != nil {
 		return "", err
 	}
-	return role.ID, nil
+	return role.Pid, nil
 }

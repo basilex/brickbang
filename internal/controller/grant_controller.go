@@ -45,7 +45,7 @@ func (rcv *grantController) List(ctx *fiber.Ctx) error {
 
 	for idx, grant := range grants {
 		resp[idx] = &transfer.GrantResponse{
-			ID:          grant.ID,
+			Pid:         grant.Pid,
 			Code:        grant.Code,
 			Description: grant.Description,
 			CreatedAt:   utility.FromPGTimestampToString(grant.CreatedAt),
@@ -69,7 +69,7 @@ func (rcv *grantController) Get(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.JSON(&transfer.GrantResponse{
-		ID:          grant.ID,
+		Pid:         grant.Pid,
 		Code:        grant.Code,
 		Description: grant.Description,
 		CreatedAt:   utility.FromPGTimestampToString(grant.CreatedAt),
@@ -91,7 +91,7 @@ func (rcv *grantController) Create(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(&transfer.GrantResponse{
-		ID:          grant.ID,
+		Pid:         grant.Pid,
 		Code:        grant.Code,
 		Description: grant.Description,
 		CreatedAt:   utility.FromPGTimestampToString(grant.CreatedAt),
@@ -118,7 +118,7 @@ func (rcv *grantController) Update(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.JSON(&transfer.GrantResponse{
-		ID:          grant.ID,
+		Pid:         grant.Pid,
 		Code:        grant.Code,
 		Description: grant.Description,
 		CreatedAt:   utility.FromPGTimestampToString(grant.CreatedAt),
@@ -126,7 +126,7 @@ func (rcv *grantController) Update(ctx *fiber.Ctx) error {
 	})
 }
 
-// Delete grant by ID
+// Delete grant by Pid
 func (rcv *grantController) Delete(ctx *fiber.Ctx) error {
 	id, err := utility.ParseID(ctx, "id")
 	if err != nil {

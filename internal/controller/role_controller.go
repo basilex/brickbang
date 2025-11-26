@@ -45,10 +45,11 @@ func (rcv *roleController) List(ctx *fiber.Ctx) error {
 
 	for idx, role := range roles {
 		resp[idx] = &transfer.RoleResponse{
-			ID:        role.ID,
-			Name:      role.Name,
-			CreatedAt: utility.FromPGTimestampToString(role.CreatedAt),
-			UpdatedAt: utility.FromPGTimestampToString(role.UpdatedAt),
+			ID:          role.ID,
+			Name:        role.Name,
+			Description: role.Description,
+			CreatedAt:   utility.FromPGTimestampToString(role.CreatedAt),
+			UpdatedAt:   utility.FromPGTimestampToString(role.UpdatedAt),
 		}
 	}
 
@@ -68,10 +69,11 @@ func (rcv *roleController) Get(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.JSON(&transfer.RoleResponse{
-		ID:        role.ID,
-		Name:      role.Name,
-		CreatedAt: utility.FromPGTimestampToString(role.CreatedAt),
-		UpdatedAt: utility.FromPGTimestampToString(role.UpdatedAt),
+		ID:          role.ID,
+		Name:        role.Name,
+		Description: role.Description,
+		CreatedAt:   utility.FromPGTimestampToString(role.CreatedAt),
+		UpdatedAt:   utility.FromPGTimestampToString(role.UpdatedAt),
 	})
 }
 
@@ -83,16 +85,17 @@ func (rcv *roleController) Create(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	role, err := rcv.svc.Create(ctx.Context(), req.Name)
+	role, err := rcv.svc.Create(ctx.Context(), req.Name, req.Description)
 	if err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(&transfer.RoleResponse{
-		ID:        role.ID,
-		Name:      role.Name,
-		CreatedAt: utility.FromPGTimestampToString(role.CreatedAt),
-		UpdatedAt: utility.FromPGTimestampToString(role.UpdatedAt),
+		ID:          role.ID,
+		Name:        role.Name,
+		Description: role.Description,
+		CreatedAt:   utility.FromPGTimestampToString(role.CreatedAt),
+		UpdatedAt:   utility.FromPGTimestampToString(role.UpdatedAt),
 	})
 }
 
@@ -109,16 +112,17 @@ func (rcv *roleController) Update(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	role, err := rcv.svc.UpdateByID(ctx.Context(), id, req.Name)
+	role, err := rcv.svc.UpdateByID(ctx.Context(), id, req.Name, req.Description)
 	if err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
 	return ctx.JSON(&transfer.RoleResponse{
-		ID:        role.ID,
-		Name:      role.Name,
-		CreatedAt: utility.FromPGTimestampToString(role.CreatedAt),
-		UpdatedAt: utility.FromPGTimestampToString(role.UpdatedAt),
+		ID:          role.ID,
+		Name:        role.Name,
+		Description: role.Description,
+		CreatedAt:   utility.FromPGTimestampToString(role.CreatedAt),
+		UpdatedAt:   utility.FromPGTimestampToString(role.UpdatedAt),
 	})
 }
 

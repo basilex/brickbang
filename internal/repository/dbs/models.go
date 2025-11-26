@@ -45,6 +45,14 @@ type Currency struct {
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
 
+type Grant struct {
+	ID          string           `json:"id"`
+	Code        string           `json:"code"`
+	Description string           `json:"description"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+}
+
 type Profile struct {
 	ID        string           `json:"id"`
 	UserID    string           `json:"user_id"`
@@ -60,10 +68,18 @@ type Profile struct {
 }
 
 type Role struct {
+	ID          string           `json:"id"`
+	Name        string           `json:"name"`
+	Description string           `json:"description"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+}
+
+type RoleGrant struct {
 	ID        string           `json:"id"`
-	Name      string           `json:"name"`
+	RoleID    string           `json:"role_id"`
+	GrantID   string           `json:"grant_id"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
 
 type Session struct {

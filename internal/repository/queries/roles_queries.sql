@@ -1,5 +1,5 @@
 -- name: CreateRole :one
-INSERT INTO roles (name) VALUES (@name)
+INSERT INTO roles (name, description) VALUES (@name, @description)
 RETURNING *;
 
 -- name: CountRoles :one
@@ -22,7 +22,7 @@ SELECT *
 
 -- name: UpdateRoleByID :one
 UPDATE roles
-   SET name = @name
+   SET name = @name, description = @description
  WHERE id = @id RETURNING *;
 
 -- name: DeleteRoleByID :one

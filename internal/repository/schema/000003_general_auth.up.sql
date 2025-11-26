@@ -31,6 +31,7 @@ insert into users(username, password, is_checked, checked_at) values
 create table roles (
   id              varchar(32)     not null default xid() primary key,
   name            varchar(255)    not null unique,
+  description     text            not null default '',
   created_at      timestamp       not null default timezone('utc', now()),
   updated_at      timestamp       not null default '1000-01-01'::timestamp
 );
@@ -39,15 +40,15 @@ create trigger users_updated_at
 	before update on roles for each row
 	execute procedure trigger_updated_at();
 
-insert into roles(name) values
-  ('role_sys'),
-  ('role_admin'),
-  ('role_editor'),
-  ('role_manager'),
-  ('role_support'),
-  ('role_reporter'),
-  ('role_financier'),
-  ('role_customer');
+insert into roles(name, description) values
+  ('role_sys', 'Role with superuser permissions'),
+  ('role_admin', 'Role with administrative permissions'),
+  ('role_editor', 'Role with content editing permissions'),
+  ('role_manager', 'Role with management permissions'),
+  ('role_support', 'Role with support permissions'),
+  ('role_reporter', 'Role with reporting permissions'),
+  ('role_financier', 'Role with financial permissions'),
+  ('role_customer', 'Role with customer permissions');
 --
 -- Entity user_roles
 --
@@ -92,6 +93,7 @@ create table grants (
 create trigger grants_updated_at
     before update on grants for each row
     execute procedure trigger_updated_at();
+
 do $$
 begin
   insert into grants(code, description) values

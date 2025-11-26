@@ -8,12 +8,12 @@ import (
 )
 
 type IRoleService interface {
-	Create(ctx context.Context, name string) (*dbs.Role, error)
+	Create(ctx context.Context, name string, description string) (*dbs.Role, error)
 	GetByID(ctx context.Context, id string) (*dbs.Role, error)
 	GetByName(ctx context.Context, name string) (*dbs.Role, error)
 	Count(ctx context.Context) (int64, error)
 	List(ctx context.Context, order string, limit, offset int32) ([]*dbs.Role, error)
-	UpdateByID(ctx context.Context, id string, name string) (*dbs.Role, error)
+	UpdateByID(ctx context.Context, id string, name string, description string) (*dbs.Role, error)
 	DeleteByID(ctx context.Context, id string) (string, error)
 }
 
@@ -26,8 +26,11 @@ func NewRoleService(q *dbs.Queries) IRoleService {
 }
 
 // Create a new role
-func (rcv *roleService) Create(ctx context.Context, name string) (*dbs.Role, error) {
-	return rcv.queries.CreateRole(ctx, name)
+func (rcv *roleService) Create(ctx context.Context, name string, description string) (*dbs.Role, error) {
+	return rcv.queries.CreateRole(ctx, &dbs.CreateRoleParams{
+		Name:        name,
+		Description: description,
+	})
 }
 
 // Get a role by its ID
@@ -64,10 +67,11 @@ func (rcv *roleService) List(ctx context.Context, order string, limit, offset in
 }
 
 // Update role name by ID
-func (rcv *roleService) UpdateByID(ctx context.Context, id string, name string) (*dbs.Role, error) {
+func (rcv *roleService) UpdateByID(ctx context.Context, id string, name string, description string) (*dbs.Role, error) {
 	params := &dbs.UpdateRoleByIDParams{
-		ID:   id,
-		Name: name,
+		ID:          id,
+		Name:        name,
+		Description: description,
 	}
 	return rcv.queries.UpdateRoleByID(ctx, params)
 }

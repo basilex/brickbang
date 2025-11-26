@@ -24,17 +24,17 @@ func NewRoleController(svc service.IRoleService) IRoleController {
 
 func (rcv *roleController) RegisterRoutes(router fiber.Router) {
 	router.Get("/", rcv.List)
-	router.Get("/:id", rcv.Get)
+	router.Get("/:pid", rcv.Get)
 	router.Post("/", rcv.Create)
-	router.Put("/:id", rcv.Update)
-	router.Delete("/:id", rcv.Delete)
+	router.Put("/:pid", rcv.Update)
+	router.Delete("/:pid", rcv.Delete)
 }
 
 // List roles with pagination
 func (rcv *roleController) List(ctx *fiber.Ctx) error {
 	limit, _ := utility.ParseIntQuery(ctx, "limit", 20)
 	offset, _ := utility.ParseIntQuery(ctx, "offset", 0)
-	order := ctx.Query("order", "id asc")
+	order := ctx.Query("order", "pid asc")
 
 	roles, err := rcv.svc.List(ctx.Context(), order, int32(limit), int32(offset))
 	if err != nil {
@@ -58,12 +58,12 @@ func (rcv *roleController) List(ctx *fiber.Ctx) error {
 
 // Get role by ID
 func (rcv *roleController) Get(ctx *fiber.Ctx) error {
-	id, err := utility.ParseID(ctx, "id")
+	pid, err := utility.ParseID(ctx, "pid")
 	if err != nil {
 		return err
 	}
 
-	role, err := rcv.svc.GetByID(ctx.Context(), id)
+	role, err := rcv.svc.GetByID(ctx.Context(), pid)
 	if err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusNotFound, errors.New("role not found"))
 	}
@@ -101,7 +101,7 @@ func (rcv *roleController) Create(ctx *fiber.Ctx) error {
 
 // Update role by ID
 func (rcv *roleController) Update(ctx *fiber.Ctx) error {
-	id, err := utility.ParseID(ctx, "id")
+	pid, err := utility.ParseID(ctx, "pid")
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (rcv *roleController) Update(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	role, err := rcv.svc.UpdateByID(ctx.Context(), id, req.Name, req.Description)
+	role, err := rcv.svc.UpdateByID(ctx.Context(), pid, req.Name, req.Description)
 	if err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
@@ -128,12 +128,12 @@ func (rcv *roleController) Update(ctx *fiber.Ctx) error {
 
 // Delete role by ID
 func (rcv *roleController) Delete(ctx *fiber.Ctx) error {
-	id, err := utility.ParseID(ctx, "id")
+	pid, err := utility.ParseID(ctx, "pid")
 	if err != nil {
 		return err
 	}
 
-	_, err = rcv.svc.DeleteByID(ctx.Context(), id)
+	_, err = rcv.svc.DeleteByID(ctx.Context(), pid)
 	if err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}

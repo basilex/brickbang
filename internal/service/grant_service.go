@@ -33,9 +33,9 @@ func (rcv *grantService) Create(ctx context.Context, code string, description st
 	})
 }
 
-// Get a grant by its ID
-func (rcv *grantService) GetByID(ctx context.Context, id string) (*dbs.Grant, error) {
-	grant, err := rcv.queries.GetGrantByID(ctx, id)
+// Get a grant by its Pid
+func (rcv *grantService) GetByID(ctx context.Context, pid string) (*dbs.Grant, error) {
+	grant, err := rcv.queries.GetGrantByID(ctx, pid)
 	if err != nil {
 		return nil, errors.New("grant not found")
 	}
@@ -77,8 +77,8 @@ func (rcv *grantService) UpdateByID(ctx context.Context, pid string, code string
 }
 
 // Delete grant by ID
-func (rcv *grantService) DeleteByID(ctx context.Context, id string) (string, error) {
-	grant, err := rcv.queries.DeleteGrantByID(ctx, id)
+func (rcv *grantService) DeleteByID(ctx context.Context, pid string) (string, error) {
+	grant, err := rcv.queries.DeleteGrantByID(ctx, pid)
 	if err != nil {
 		return "", err
 	}

@@ -24,17 +24,17 @@ func NewGrantController(svc service.IGrantService) IGrantController {
 
 func (rcv *grantController) RegisterRoutes(router fiber.Router) {
 	router.Get("/", rcv.List)
-	router.Get("/:id", rcv.Get)
+	router.Get("/:pid", rcv.Get)
 	router.Post("/", rcv.Create)
-	router.Put("/:id", rcv.Update)
-	router.Delete("/:id", rcv.Delete)
+	router.Put("/:pid", rcv.Update)
+	router.Delete("/:pid", rcv.Delete)
 }
 
 // List grants with pagination
 func (rcv *grantController) List(ctx *fiber.Ctx) error {
 	limit, _ := utility.ParseIntQuery(ctx, "limit", 20)
 	offset, _ := utility.ParseIntQuery(ctx, "offset", 0)
-	order := ctx.Query("order", "id asc")
+	order := ctx.Query("order", "pid asc")
 
 	grants, err := rcv.svc.List(ctx.Context(), order, int32(limit), int32(offset))
 	if err != nil {
@@ -58,12 +58,12 @@ func (rcv *grantController) List(ctx *fiber.Ctx) error {
 
 // Get grant by ID
 func (rcv *grantController) Get(ctx *fiber.Ctx) error {
-	id, err := utility.ParseID(ctx, "id")
+	pid, err := utility.ParseID(ctx, "pid")
 	if err != nil {
 		return err
 	}
 
-	grant, err := rcv.svc.GetByID(ctx.Context(), id)
+	grant, err := rcv.svc.GetByID(ctx.Context(), pid)
 	if err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusNotFound, errors.New("grant not found"))
 	}
@@ -101,7 +101,7 @@ func (rcv *grantController) Create(ctx *fiber.Ctx) error {
 
 // Update grant by ID
 func (rcv *grantController) Update(ctx *fiber.Ctx) error {
-	id, err := utility.ParseID(ctx, "id")
+	pid, err := utility.ParseID(ctx, "pid")
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (rcv *grantController) Update(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	grant, err := rcv.svc.UpdateByID(ctx.Context(), id, req.Code, req.Description)
+	grant, err := rcv.svc.UpdateByID(ctx.Context(), pid, req.Code, req.Description)
 	if err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
@@ -128,12 +128,12 @@ func (rcv *grantController) Update(ctx *fiber.Ctx) error {
 
 // Delete grant by Pid
 func (rcv *grantController) Delete(ctx *fiber.Ctx) error {
-	id, err := utility.ParseID(ctx, "id")
+	pid, err := utility.ParseID(ctx, "pid")
 	if err != nil {
 		return err
 	}
 
-	_, err = rcv.svc.DeleteByID(ctx.Context(), id)
+	_, err = rcv.svc.DeleteByID(ctx.Context(), pid)
 	if err != nil {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}

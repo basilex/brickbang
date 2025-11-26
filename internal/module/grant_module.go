@@ -10,6 +10,7 @@ type IGrantModule interface {
 	Service() service.IGrantService
 	Controller() controller.IGrantController
 }
+
 type grantModule struct {
 	service    service.IGrantService
 	controller controller.IGrantController

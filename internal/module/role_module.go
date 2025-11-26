@@ -10,6 +10,7 @@ type IRoleModule interface {
 	Service() service.IRoleService
 	Controller() controller.IRoleController
 }
+
 type roleModule struct {
 	service    service.IRoleService
 	controller controller.IRoleController

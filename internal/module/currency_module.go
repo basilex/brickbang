@@ -10,6 +10,7 @@ type ICurrencyModule interface {
 	Service() service.ICurrencyService
 	Controller() controller.ICurrencyController
 }
+
 type currencyModule struct {
 	service    service.ICurrencyService
 	controller controller.ICurrencyController

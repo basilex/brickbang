@@ -10,6 +10,7 @@ type ICountryModule interface {
 	Service() service.ICountryService
 	Controller() controller.ICountryController
 }
+
 type countryModule struct {
 	service    service.ICountryService
 	controller controller.ICountryController

@@ -22,3 +22,10 @@ UPDATE users
 UPDATE users
    SET is_blocked = true, blocked_at = timezone('utc', now())
  WHERE id = @id RETURNING id, username, is_blocked, blocked_at;
+
+-- name: AuthGetUserGrants :many
+SELECT g.code
+  FROM user_roles ur
+  JOIN role_grants rg ON rg.role_id = ur.role_id
+  JOIN grants g       ON g.id = rg.grant_id
+ WHERE ur.user_id = @user_id;

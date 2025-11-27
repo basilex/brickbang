@@ -89,6 +89,41 @@ func (q *Queries) AuthCreateUser(ctx context.Context, arg *AuthCreateUserParams)
 	return &i, err
 }
 
+const authGetUserGrants = `-- name: AuthGetUserGrants :many
+SELECT g.code
+  FROM user_roles ur
+  JOIN role_grants rg ON rg.role_id = ur.role_id
+  JOIN grants g       ON g.id = rg.grant_id
+ WHERE ur.user_id = $1
+`
+
+// AuthGetUserGrants
+//
+//	SELECT g.code
+//	  FROM user_roles ur
+//	  JOIN role_grants rg ON rg.role_id = ur.role_id
+//	  JOIN grants g       ON g.id = rg.grant_id
+//	 WHERE ur.user_id = $1
+func (q *Queries) AuthGetUserGrants(ctx context.Context, userID string) ([]string, error) {
+	rows, err := q.db.Query(ctx, authGetUserGrants, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var code string
+		if err := rows.Scan(&code); err != nil {
+			return nil, err
+		}
+		items = append(items, code)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const authSelectUserByID = `-- name: AuthSelectUserByID :one
 SELECT id, username, password, is_blocked, is_checked, blocked_at, checked_at, visited_at, created_at, updated_at
   FROM users

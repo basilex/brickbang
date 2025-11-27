@@ -62,6 +62,38 @@ create table user_roles (
 
 create unique index user_roles_pair_unq on user_roles(user_id, role_id);
 
+create or replace function notify_user_roles() returns trigger as $$
+declare
+  payload json;
+  uid text;
+  rid text;
+begin
+  if (TG_OP = 'INSERT') then
+    uid := new.user_id;
+    rid := new.role_id;
+  elsif (TG_OP = 'DELETE') then
+    uid := old.user_id;
+    rid := old.role_id;
+  else
+    uid := new.user_id;
+    rid := new.role_id;
+  end if;
+
+  payload := json_build_object(
+    'object', 'user_roles',
+    'op', TG_OP,
+    'user_id', uid,
+    'role_id', rid
+  );
+  perform pg_notify('rbac_updates', payload::text);
+  return case when TG_OP = 'DELETE' then old else new end;
+end;
+$$ language plpgsql;
+
+create trigger user_roles_change
+  after insert or update or delete on user_roles
+  for each row execute function notify_user_roles();
+
 do $$
 declare
     m record;
@@ -93,8 +125,40 @@ create table grants (
 );
 
 create trigger grants_updated_at
-    before update on grants for each row
-    execute procedure trigger_updated_at();
+  before update on grants for each row
+  execute procedure trigger_updated_at();
+
+create or replace function notify_grants() returns trigger as $$
+declare
+  payload json;
+  gid text;
+  code text;
+begin
+  if (TG_OP = 'INSERT') then
+    gid := new.id;
+    code := new.code;
+  elsif (TG_OP = 'DELETE') then
+    gid := old.id;
+    code := old.code;
+  else
+    gid := new.id;
+    code := new.code;
+  end if;
+
+  payload := json_build_object(
+    'object', 'grants',
+    'op', TG_OP,
+    'grant_id', gid,
+    'code', code
+  );
+  perform pg_notify('rbac_updates', payload::text);
+  return case when TG_OP = 'DELETE' then old else new end;
+end;
+$$ language plpgsql;
+
+create trigger grants_change
+  after insert or update or delete on grants
+  for each row execute function notify_grants();
 
 do $$
 begin
@@ -139,9 +203,42 @@ create table role_grants (
 
 create unique index role_grants_pair_unq on role_grants(role_id, grant_id);
 
+create or replace function notify_role_grants() returns trigger as $$
+declare
+  payload json;
+  rid text;
+  gid text;
+begin
+  if (TG_OP = 'INSERT') then
+    rid := new.role_id;
+    gid := new.grant_id;
+  elsif (TG_OP = 'DELETE') then
+    rid := old.role_id;
+    gid := old.grant_id;
+  else
+    -- UPDATE: handle like INSERT (values on NEW)
+    rid := new.role_id;
+    gid := new.grant_id;
+  end if;
+
+  payload := json_build_object(
+    'object', 'role_grants',
+    'op', TG_OP,
+    'role_id', rid,
+    'grant_id', gid
+  );
+  perform pg_notify('rbac_updates', payload::text);
+  return case when TG_OP = 'DELETE' then old else new end;
+end;
+$$ language plpgsql;
+
+create trigger role_grants_change
+  after insert or update or delete on role_grants
+  for each row execute function notify_role_grants();
+
 do $$
 declare
-  v_role_id   role_grants.role_id%type;
+  v_role_id role_grants.role_id%type;
 begin
   -- SYS ROLE — получает *все* sys:*:* права
   select id into v_role_id from roles where name = 'role_sys';
@@ -168,11 +265,11 @@ begin
   select v_role_id, g.id
     from grants g
    where g.code in (
-          'tenant:product:read',
-          'tenant:product:update',
-          'tenant:order:read',
-          'tenant:order:update'
-      )
+    'tenant:product:read',
+    'tenant:product:update',
+    'tenant:order:read',
+    'tenant:order:update'
+  )
   on conflict do nothing;
 
   -- MANAGER ROLE (пример: товары/заказы create+read+update)
@@ -182,13 +279,13 @@ begin
   select v_role_id, g.id
     from grants g
    where g.code in (
-          'tenant:product:create',
-          'tenant:product:read',
-          'tenant:product:update',
-          'tenant:order:create',
-          'tenant:order:read',
-          'tenant:order:update'
-      )
+    'tenant:product:create',
+    'tenant:product:read',
+    'tenant:product:update',
+    'tenant:order:create',
+    'tenant:order:read',
+    'tenant:order:update'
+  )
   on conflict do nothing;
 
   -- SUPPORT ROLE — просмотр данных пользователей и заказов
@@ -198,10 +295,10 @@ begin
   select v_role_id, g.id
     from grants g
    where g.code in (
-          'tenant:users:read',
-          'tenant:product:read',
-          'tenant:order:read'
-      )
+    'tenant:users:read',
+    'tenant:product:read',
+    'tenant:order:read'
+  )
   on conflict do nothing;
 
   -- REPORTER ROLE — только read, любые данные
@@ -219,10 +316,10 @@ begin
   select v_role_id, g.id
     from grants g
    where g.code in (
-          'tenant:order:read',
-          'tenant:order:update',
-          'tenant:settings:read'
-      )
+    'tenant:order:read',
+    'tenant:order:update',
+    'tenant:settings:read'
+  )
   on conflict do nothing;
 
   -- CUSTOMER ROLE — минимальные права
@@ -232,12 +329,11 @@ begin
   select v_role_id, g.id
     from grants g
    where g.code in (
-          'tenant:users:read',
-          'tenant:product:read'
-      )
+    'tenant:users:read',
+    'tenant:product:read'
+  )
   on conflict do nothing;
 end $$;
-
 --
 -- Entity session
 --
@@ -265,8 +361,8 @@ create table session (
 );
 
 create trigger session_updated_at
-    before update on session for each row
-    execute procedure trigger_updated_at();
+  before update on session for each row
+  execute procedure trigger_updated_at();
 --
 -- Entity profile
 --
@@ -290,7 +386,7 @@ create trigger profile_updated_at
 
 do $$
 declare
-    v_user_id profile.id%type;
+  v_user_id profile.id%type;
 begin
   select id into v_user_id from users where username = 'sys';
   insert into profile(user_id, firstname, lastname)
@@ -333,7 +429,7 @@ create trigger contact_updated_at
 
 do $$
 declare
-    v_user_id users.id%type;
+  v_user_id users.id%type;
 begin
   --
   -- sys contacts

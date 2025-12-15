@@ -83,6 +83,29 @@ app-tidy:
 app-build:
 	@go build -a -ldflags="$(ldflags)" -o $(dist)/$(svc) main.go
 
+.PHONY: vet test ci
+vet:
+	@go vet ./...
+
+test:
+	@go test ./... -v
+
+ci: app-tidy vet test
+	@echo "CI checks completed"
+
+.PHONY: lint
+lint:
+	@golangci-lint run ./...
+
+.PHONY: test-integration test-integration-all
+test-integration:
+	@docker info > /dev/null || (echo "Docker not available"; exit 1)
+	@go test -tags=integration ./internal/repository/dbs -v
+
+test-integration-all:
+	@docker info > /dev/null || (echo "Docker not available"; exit 1)
+	@go test -tags=integration ./... -v
+
 .PHONY: app-tidy app-build
 #
 # Composer section

@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, master]
+  pull_request:
+    branches: [dev, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.25"
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |-
+            ~/.cache/go-build
+            /home/runner/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: v1.59.0
+      - name: Run CI targets
+        run: |
+          make ci
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: v1.59.0
+          args: run ./...

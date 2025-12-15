@@ -68,8 +68,11 @@ func Init(env string) *Config {
 		cfg = &Config{Env: env}
 		envFile := filepath.Join(".env." + env)
 
-		if err := godotenv.Load(envFile); err != nil {
-			slog.Warn("Failed to load .env file, fallback to system env", "file", envFile, "err", err)
+		// Only attempt to load env file if it exists to avoid noisy warnings in CI/test
+		if _, err := os.Stat(envFile); err == nil {
+			if err := godotenv.Load(envFile); err != nil {
+				slog.Warn("Failed to load .env file, fallback to system env", "file", envFile, "err", err)
+			}
 		}
 
 		cfg.DatabaseDSN = getEnv("DATABASE_DSN", "postgres://postgres:password@postgres:5432/brickbang_dev?sslmode=disable")

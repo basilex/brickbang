@@ -90,13 +90,14 @@ func (rcv *grantController) Create(ctx *fiber.Ctx) error {
 		return utility.RespondWithError(ctx, fiber.StatusInternalServerError, err)
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(&transfer.GrantResponse{
-		Pid:         grant.Pid,
-		Code:        grant.Code,
-		Description: grant.Description,
-		CreatedAt:   utility.FromPGTimestampToString(grant.CreatedAt),
-		UpdatedAt:   utility.FromPGTimestampToString(grant.UpdatedAt),
-	})
+	return ctx.Status(fiber.StatusCreated).JSON(
+		&transfer.GrantResponse{
+			Pid:         grant.Pid,
+			Code:        grant.Code,
+			Description: grant.Description,
+			CreatedAt:   utility.FromPGTimestampToString(grant.CreatedAt),
+			UpdatedAt:   utility.FromPGTimestampToString(grant.UpdatedAt),
+		})
 }
 
 // Update grant by ID
